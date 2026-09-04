@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# The AssetBoar acceptance flow, through this gem, against a live server.
+#
+#   ASSETBOAR_URL=http://localhost:3000 ASSETBOAR_API_KEY=ab_… \
+#   PDF_PATH=report.pdf IMAGE_PATH=avatar.png bin/dogfood
+#
+# The project needs a private "documents" (application/pdf) policy and a public
+# "avatars" (image/*) policy with a public base URL on its storage connection.
+
+require "bundler/setup"
+require "assetboar"
+require "net/http"
+
+def env!(name) = ENV.fetch(name) { abort "Set #{name}" }
+def fetch(url) = Net::HTTP.get_response(URI(url))
+
+def step(n, text)
+  print "#{n}. #{text} … "
+  yield
+  puts "ok"
+rescue => e
+  puts "FAILED\n   #{e.class}: #{e.message}"
+  exit 1
+end
+
+client = Assetboar::Client.new(api_key: env!("ASSETBOAR_API_KEY"), url: ENV.fetch("ASSETBOAR_URL", "http://localhost:3000"))
+pdf_path, image_path = env!("PDF_PATH"), env!("IMAGE_PATH")
+records = {} # what a customer's app would persist: file ids only
+
+project = client.project
+puts "AssetBoar dogfood against #{client.config.url}"
+puts "   project #{project.id} on #{project.storage_mode}/#{project.storage_provider}, policies: #{project.upload_policies.map(&:name).join(', ')}"
+
+pdf = image = nil
+step(1, "Upload a private PDF with client.upload") do
+  pdf = client.upload(pdf_path, policy: "documents", metadata: { "source" => "dogfood" })
+  raise "expected ready, got #{pdf.status}" unless pdf.ready?
+  raise "private file should have no public url" if pdf.url
+  raise "metadata lost" unless pdf.metadata == { "source" => "dogfood" }
+  records[:report] = pdf.id
+end
+
+step(2, "Read it back through an expiring URL") do
+  url = pdf.signed_url(expires_in: 120, disposition: "attachment")
+  response = fetch(url)
+  raise "signed url returned HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+  raise "bytes differ" unless response.body == File.binread(pdf_path)
+end
+
+step(3, "Upload a public image via the three explicit steps") do
+  bytes = File.binread(image_path)
+  upload = client.create_upload(policy: "avatars", filename: File.basename(image_path), content_type: "image/png", byte_size: bytes.bytesize)
+  raise "file should be pending" unless upload.file.pending?
+  image = upload.put(bytes).complete
+  raise "expected ready, got #{image.status}" unless image.ready?
+  records[:avatar] = image.id
+end
+
+step(4, "Read it back through its public URL") do
+  raise "public file has no url (set a public base URL on the connection)" unless image.url
+  response = fetch(image.url)
+  raise "public url returned HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+  raise "bytes differ" unless response.body == File.binread(image_path)
+end
+
+step(5, "Policy violations raise typed errors") do
+  client.upload(image_path, policy: "documents", content_type: "image/png")
+  raise "expected Assetboar::PolicyError"
+rescue Assetboar::PolicyError => e
+  raise "wrong code #{e.code}" unless e.code == "policy_violation"
+end
+
+step(6, "Only AssetBoar file ids were persisted") do
+  records.each_value { |id| raise "#{id.inspect} is not a file id" unless Assetboar::File.id?(id) }
+  raise "storage_key leaked" if [ pdf, image ].to_json.include?("storage_key")
+end
+
+step(7, "Delete both through AssetBoar") do
+  raise "pdf not deleted" unless pdf.delete.deleted?
+  raise "image not deleted" unless image.delete.deleted?
+  raise "expected InvalidStateError on double delete" unless (client.delete_file(pdf.id) rescue $!).is_a?(Assetboar::InvalidStateError)
+  raise "expected NotFoundError" unless (client.file("file_00000000000000000000") rescue $!).is_a?(Assetboar::NotFoundError)
+end
+
+puts "All steps passed. Demo records: #{records.inspect}"

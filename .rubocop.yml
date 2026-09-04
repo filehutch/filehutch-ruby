@@ -1,0 +1,8 @@
+# Omakase Ruby styling, same as the AssetBoar app.
+inherit_gem: { rubocop-rails-omakase: rubocop.yml }
+
+AllCops:
+  Exclude:
+    - "test/dummy/tmp/**/*"
+    - "test/dummy/log/**/*"
+    - "vendor/**/*"

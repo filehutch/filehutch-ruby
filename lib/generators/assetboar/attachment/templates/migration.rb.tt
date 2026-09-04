@@ -1,0 +1,6 @@
+class <%= migration_class_name %> < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
+  def change
+    # Holds an AssetBoar file id ("file_…"). Never a URL, never a storage key.
+    add_column :<%= table_name %>, :<%= column_name %>, :string
+  end
+end
