@@ -15,6 +15,19 @@ module Assethutch
     end
 
     def upload_policy(name) = upload_policies.find { |p| p.name == name.to_s || p.id == name.to_s }
+
+    def transforms
+      (self["transforms"] || []).map { |t| Transform.new(t, client: client) }
+    end
+
+    def transform(name) = transforms.find { |t| t.name == name.to_s || t.id == name.to_s }
+  end
+
+  # A named image size defined in the project. Applications reference the name;
+  # nothing here is provider-specific.
+  class Transform < Resource
+    attribute :name, :width, :height, :fit, :quality, :format
+    time_attribute :created_at
   end
 
   class UploadPolicy < Resource

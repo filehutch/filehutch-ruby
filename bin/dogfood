@@ -7,7 +7,9 @@
 #   PDF_PATH=report.pdf IMAGE_PATH=avatar.png bin/dogfood
 #
 # The project needs a private "documents" (application/pdf) policy and a public
-# "avatars" (image/*) policy with a public base URL on its storage connection.
+# "avatars" (image/*) policy with a public base URL on its storage connection,
+# and at least one named transform. Transforms are skipped, not failed, when the
+# project's storage cannot render them.
 
 require "bundler/setup"
 require "assethutch"
@@ -18,8 +20,7 @@ def fetch(url) = Net::HTTP.get_response(URI(url))
 
 def step(n, text)
   print "#{n}. #{text} … "
-  yield
-  puts "ok"
+  puts(yield == :skipped ? "skipped" : "ok")
 rescue => e
   puts "FAILED\n   #{e.class}: #{e.message}"
   exit 1
@@ -65,19 +66,31 @@ step(4, "Read it back through its public URL") do
   raise "bytes differ" unless response.body == File.binread(image_path)
 end
 
-step(5, "Policy violations raise typed errors") do
+step(5, "Named transforms resolve without the app naming a size or a provider") do
+  names = client.transforms.map(&:name)
+  raise "no transforms defined; add one in the dashboard" if names.empty?
+
+  url = image.reload.transform_url(names.first)
+  raise "transform url is not a URL: #{url.inspect}" unless url.to_s.start_with?("http")
+  response = fetch(url)
+  raise "transform url returned HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+rescue Assethutch::TransformsUnsupportedError
+  :skipped # this project's storage cannot render them; every other step still holds
+end
+
+step(6, "Policy violations raise typed errors") do
   client.upload(image_path, policy: "documents", content_type: "image/png")
   raise "expected Assethutch::PolicyError"
 rescue Assethutch::PolicyError => e
   raise "wrong code #{e.code}" unless e.code == "policy_violation"
 end
 
-step(6, "Only AssetHutch file ids were persisted") do
+step(7, "Only AssetHutch file ids were persisted") do
   records.each_value { |id| raise "#{id.inspect} is not a file id" unless Assethutch::File.id?(id) }
   raise "storage_key leaked" if [ pdf, image ].to_json.include?("storage_key")
 end
 
-step(7, "Delete both through AssetHutch") do
+step(8, "Delete both through AssetHutch") do
   raise "pdf not deleted" unless pdf.delete.deleted?
   raise "image not deleted" unless image.delete.deleted?
   raise "expected InvalidStateError on double delete" unless (client.delete_file(pdf.id) rescue $!).is_a?(Assethutch::InvalidStateError)

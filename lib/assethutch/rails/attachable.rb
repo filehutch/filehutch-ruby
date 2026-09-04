@@ -15,6 +15,7 @@ module Assethutch
   #   user.avatar                              # => Assethutch::File or nil
   #   user.avatar_url                          # public URL (public policies)
   #   user.avatar_signed_url(expires_in: 600)  # works for private files
+  #   user.avatar_transform_url("thumb")       # a named transform from the dashboard
   #   user.purge_avatar                        # deletes remotely, clears the column
   #
   # Options: column: (default "<name>_file_id"), dependent: :delete (default; delete the file when the
@@ -40,6 +41,7 @@ module Assethutch
         define_method(:"#{name}?") { self[column].present? }
         define_method(:"#{name}_url") { assethutch_file(name)&.url }
         define_method(:"#{name}_signed_url") { |expires_in: nil, disposition: nil| assethutch_file(name)&.signed_url(expires_in: expires_in, disposition: disposition) }
+        define_method(:"#{name}_transform_url") { |transform, expires_in: nil| assethutch_file(name)&.transform_url(transform, expires_in: expires_in) }
         define_method(:"purge_#{name}") { assethutch_purge(name) }
       end
 
