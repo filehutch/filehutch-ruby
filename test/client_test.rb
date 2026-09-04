@@ -243,4 +243,12 @@ class ClientTest < ActiveSupport::TestCase
       .to_return(json(error_json("transform_not_found", "No transform named \"nope\""), 422))
     assert_raises(Assethutch::TransformError) { @client.file(ApiStubs::FILE_ID).transform_url("nope") }
   end
+
+  test "put_to_storage works from an upload rebuilt without its file" do
+    stub_request(:put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1").to_return(status: 200, body: "")
+    upload = Assethutch::Upload.new(upload_json) # no file:, as a browser flow returns it
+
+    assert @client.put_to_storage(upload, StringIO.new("hello"))
+    assert_requested :put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1", body: "hello"
+  end
 end
