@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] = "test"
-ENV["ASSETBOAR_API_KEY"] = "ab_testTESTtestTESTtestTESTtestTESTtestTEST"
-ENV["ASSETBOAR_URL"] = "https://assetboar.test"
+ENV["ASSETHUTCH_API_KEY"] = "ah_testTESTtestTESTtestTESTtestTESTtestTEST"
+ENV["ASSETHUTCH_URL"] = "https://assethutch.test"
 
 require_relative "dummy/config/application"
 Rails.application.initialize!
@@ -20,10 +20,10 @@ module ActiveSupport
     self.file_fixture_path = File.expand_path("fixtures/files", __dir__)
 
     setup do
-      Assetboar.instance_variable_set(:@configuration, nil)
-      Assetboar.reset_client!
-      Assetboar::Attachable.reset_policies!
-      Assetboar.config.authorize_direct_upload = nil
+      Assethutch.instance_variable_set(:@configuration, nil)
+      Assethutch.reset_client!
+      Assethutch::Attachable.reset_policies!
+      Assethutch.config.authorize_direct_upload = nil
     end
   end
 end

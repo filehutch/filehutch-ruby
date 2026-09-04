@@ -6,8 +6,8 @@ class AttachableTest < ActiveSupport::TestCase
   ID2 = "file_ZYXWVUTSRQ9876543210"
 
   test "declares the attachment on the model" do
-    assert_equal %w[documents avatars], Document.assetboar_files.values.map { |o| o[:policy] }
-    assert_equal "report_file_id", Document.assetboar_files[:report][:column]
+    assert_equal %w[documents avatars], Document.assethutch_files.values.map { |o| o[:policy] }
+    assert_equal "report_file_id", Document.assethutch_files[:report][:column]
     assert_respond_to Document.new, :report_signed_url
   end
 
@@ -98,17 +98,17 @@ class AttachableTest < ActiveSupport::TestCase
     assert_requested :post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/signed_url", body: { expires_in: 60 }.to_json
   end
 
-  test "assigning an Assetboar::File uses it without refetching" do
-    doc = Document.new(report: Assetboar::File.new(file_json))
+  test "assigning an Assethutch::File uses it without refetching" do
+    doc = Document.new(report: Assethutch::File.new(file_json))
     assert doc.save
     assert_equal ApiStubs::FILE_ID, doc.report_file_id
     assert_not_requested :get, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}"
   end
 
   test "replacing a file deletes the old one after save when dependent: :delete" do
-    doc = Document.create!(report: Assetboar::File.new(file_json))
+    doc = Document.create!(report: Assethutch::File.new(file_json))
     stub_delete
-    doc.report = Assetboar::File.new(file_json(id: ID2))
+    doc.report = Assethutch::File.new(file_json(id: ID2))
     assert_not_requested :delete, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}"
     doc.save!
     assert_requested :delete, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}"
@@ -116,7 +116,7 @@ class AttachableTest < ActiveSupport::TestCase
   end
 
   test "clearing deletes the old file; dependent: false leaves it alone" do
-    doc = Document.create!(report: Assetboar::File.new(file_json), avatar: ID2)
+    doc = Document.create!(report: Assethutch::File.new(file_json), avatar: ID2)
     stub_delete
     doc.report = nil
     doc.avatar = nil
@@ -127,7 +127,7 @@ class AttachableTest < ActiveSupport::TestCase
   end
 
   test "destroying the record deletes the file, tolerating an already-deleted file" do
-    doc = Document.create!(report: Assetboar::File.new(file_json), avatar: ID2)
+    doc = Document.create!(report: Assethutch::File.new(file_json), avatar: ID2)
     stub_request(:delete, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}").to_return(json(error_json("already_deleted"), 410))
     doc.destroy!
     assert_requested :delete, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}"
@@ -135,7 +135,7 @@ class AttachableTest < ActiveSupport::TestCase
   end
 
   test "purge deletes remotely and clears the column immediately" do
-    doc = Document.create!(report: Assetboar::File.new(file_json))
+    doc = Document.create!(report: Assethutch::File.new(file_json))
     stub_delete
     assert doc.purge_report
     assert_nil doc.report_file_id
@@ -149,7 +149,7 @@ class AttachableTest < ActiveSupport::TestCase
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/uploads").to_return(json(error_json("storage_not_ready", "no bucket"), 409))
     doc = Document.new(title: "x")
     doc.report = File.open(file_fixture("sample.pdf"), "rb")
-    assert_raises(Assetboar::StorageNotReadyError) { doc.save }
+    assert_raises(Assethutch::StorageNotReadyError) { doc.save }
     assert_nil doc.report_file_id
     assert_not doc.persisted?
   end

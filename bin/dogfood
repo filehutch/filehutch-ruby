@@ -1,16 +1,16 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# The AssetBoar acceptance flow, through this gem, against a live server.
+# The AssetHutch acceptance flow, through this gem, against a live server.
 #
-#   ASSETBOAR_URL=http://localhost:3000 ASSETBOAR_API_KEY=ab_… \
+#   ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_… \
 #   PDF_PATH=report.pdf IMAGE_PATH=avatar.png bin/dogfood
 #
 # The project needs a private "documents" (application/pdf) policy and a public
 # "avatars" (image/*) policy with a public base URL on its storage connection.
 
 require "bundler/setup"
-require "assetboar"
+require "assethutch"
 require "net/http"
 
 def env!(name) = ENV.fetch(name) { abort "Set #{name}" }
@@ -25,12 +25,12 @@ rescue => e
   exit 1
 end
 
-client = Assetboar::Client.new(api_key: env!("ASSETBOAR_API_KEY"), url: ENV.fetch("ASSETBOAR_URL", "http://localhost:3000"))
+client = Assethutch::Client.new(api_key: env!("ASSETHUTCH_API_KEY"), url: ENV.fetch("ASSETHUTCH_URL", "http://localhost:3000"))
 pdf_path, image_path = env!("PDF_PATH"), env!("IMAGE_PATH")
 records = {} # what a customer's app would persist: file ids only
 
 project = client.project
-puts "AssetBoar dogfood against #{client.config.url}"
+puts "AssetHutch dogfood against #{client.config.url}"
 puts "   project #{project.id} on #{project.storage_mode}/#{project.storage_provider}, policies: #{project.upload_policies.map(&:name).join(', ')}"
 
 pdf = image = nil
@@ -67,21 +67,21 @@ end
 
 step(5, "Policy violations raise typed errors") do
   client.upload(image_path, policy: "documents", content_type: "image/png")
-  raise "expected Assetboar::PolicyError"
-rescue Assetboar::PolicyError => e
+  raise "expected Assethutch::PolicyError"
+rescue Assethutch::PolicyError => e
   raise "wrong code #{e.code}" unless e.code == "policy_violation"
 end
 
-step(6, "Only AssetBoar file ids were persisted") do
-  records.each_value { |id| raise "#{id.inspect} is not a file id" unless Assetboar::File.id?(id) }
+step(6, "Only AssetHutch file ids were persisted") do
+  records.each_value { |id| raise "#{id.inspect} is not a file id" unless Assethutch::File.id?(id) }
   raise "storage_key leaked" if [ pdf, image ].to_json.include?("storage_key")
 end
 
-step(7, "Delete both through AssetBoar") do
+step(7, "Delete both through AssetHutch") do
   raise "pdf not deleted" unless pdf.delete.deleted?
   raise "image not deleted" unless image.delete.deleted?
-  raise "expected InvalidStateError on double delete" unless (client.delete_file(pdf.id) rescue $!).is_a?(Assetboar::InvalidStateError)
-  raise "expected NotFoundError" unless (client.file("file_00000000000000000000") rescue $!).is_a?(Assetboar::NotFoundError)
+  raise "expected InvalidStateError on double delete" unless (client.delete_file(pdf.id) rescue $!).is_a?(Assethutch::InvalidStateError)
+  raise "expected NotFoundError" unless (client.file("file_00000000000000000000") rescue $!).is_a?(Assethutch::NotFoundError)
 end
 
 puts "All steps passed. Demo records: #{records.inspect}"

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-# WebMock stubs shaped exactly like the AssetBoar v1 API responses.
+# WebMock stubs shaped exactly like the AssetHutch v1 API responses.
 module ApiStubs
-  BASE = "https://assetboar.test"
+  BASE = "https://assethutch.test"
   STORAGE = "https://bucket.storage.test"
   FILE_ID = "file_abcdefghij0123456789"
-  AUTH = { "Authorization" => "Bearer ab_testTESTtestTESTtestTESTtestTESTtestTEST" }.freeze
+  AUTH = { "Authorization" => "Bearer ah_testTESTtestTESTtestTESTtestTESTtestTEST" }.freeze
 
   def file_json(**overrides)
     {
@@ -18,7 +18,7 @@ module ApiStubs
 
   def upload_json(id: FILE_ID)
     { "id" => id, "object" => "upload", "file_id" => id, "method" => "PUT", "url" => "#{STORAGE}/#{id}?sig=1",
-      "headers" => { "Content-Type" => "application/pdf" }, "expires_at" => "2026-09-04T12:15:00.000Z" }
+      "headers" => { "Content-Type" => "application/pdf" }, "expires_at" => "2099-01-01T00:00:00.000Z" }
   end
 
   def project_json

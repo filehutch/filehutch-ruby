@@ -2,11 +2,11 @@
 
 require "test_helper"
 require "rails/generators/test_case"
-require "generators/assetboar/install/install_generator"
-require "generators/assetboar/attachment/attachment_generator"
+require "generators/assethutch/install/install_generator"
+require "generators/assethutch/attachment/attachment_generator"
 
 class InstallGeneratorTest < Rails::Generators::TestCase
-  tests Assetboar::Generators::InstallGenerator
+  tests Assethutch::Generators::InstallGenerator
   destination File.expand_path("../tmp/generators", __dir__)
   setup do
     prepare_destination
@@ -17,14 +17,14 @@ class InstallGeneratorTest < Rails::Generators::TestCase
 
   test "creates the initializer, mounts the engine, and pins the controller" do
     run_generator
-    assert_file "config/initializers/assetboar.rb", /Assetboar.configure/
-    assert_file "config/routes.rb", /mount Assetboar::Engine => "\/assetboar"/
-    assert_file "config/importmap.rb", /pin "assetboar\/direct_upload_controller"/
+    assert_file "config/initializers/assethutch.rb", /Assethutch.configure/
+    assert_file "config/routes.rb", /mount Assethutch::Engine => "\/assethutch"/
+    assert_file "config/importmap.rb", /pin "assethutch\/direct_upload_controller"/
   end
 end
 
 class AttachmentGeneratorTest < Rails::Generators::TestCase
-  tests Assetboar::Generators::AttachmentGenerator
+  tests Assethutch::Generators::AttachmentGenerator
   destination File.expand_path("../tmp/generators", __dir__)
   setup { prepare_destination }
 

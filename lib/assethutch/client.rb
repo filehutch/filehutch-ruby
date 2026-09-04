@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module Assetboar
-  # HTTP client for the AssetBoar v1 API. Stdlib only.
+module Assethutch
+  # HTTP client for the AssetHutch v1 API. Stdlib only.
   #
-  #   client = Assetboar::Client.new(api_key: "ab_…", url: "https://api.assetboar.com")
+  #   client = Assethutch::Client.new(api_key: "ah_…", url: "https://api.assethutch.com")
   #   client.upload("report.pdf", policy: "documents")        # 3-step direct upload, returns the ready file
   #   client.file("file_…").signed_url(expires_in: 600)
   class Client
@@ -15,7 +15,7 @@ module Assetboar
 
     # Accepts a Configuration or keyword overrides on top of the global one.
     def initialize(config = nil, **overrides)
-      @config = (config || Assetboar.configuration).dup
+      @config = (config || Assethutch.configuration).dup
       overrides.each { |k, v| @config.public_send(:"#{k}=", v) }
       @config.validate!
       @base = URI(@config.url.to_s.sub(%r{/+\z}, ""))
@@ -57,7 +57,7 @@ module Assetboar
     #
     # source: a path, Pathname, File, Tempfile, StringIO, ActionDispatch::Http::UploadedFile,
     #         or a String of bytes (pass filename: then).
-    # Returns the ready Assetboar::File. Bytes go straight to storage.
+    # Returns the ready Assethutch::File. Bytes go straight to storage.
     def upload(source, policy:, filename: nil, content_type: nil, metadata: nil)
       io, name, type, size = Source.open(source, filename: filename, content_type: content_type)
       upload = create_upload(policy: policy, filename: name, content_type: type, byte_size: size, metadata: metadata)
@@ -67,7 +67,7 @@ module Assetboar
       io&.close if io && Source.owned?(io, source)
     end
 
-    # PUT bytes to the storage URL in an upload authorization. Never hits an AssetBoar endpoint.
+    # PUT bytes to the storage URL in an upload authorization. Never hits an AssetHutch endpoint.
     def put_to_storage(upload, source)
       io, _name, _type, size = Source.open(source, filename: upload.file&.filename, content_type: upload.headers["Content-Type"])
       uri = URI(upload.url)
@@ -127,12 +127,12 @@ module Assetboar
 
     def path_id(id)
       value = id.respond_to?(:id) ? id.id : id.to_s
-      raise ArgumentError, "expected an AssetBoar id, got #{id.inspect}" if value.to_s.empty? || value.to_s.include?("/")
+      raise ArgumentError, "expected an AssetHutch id, got #{id.inspect}" if value.to_s.empty? || value.to_s.include?("/")
       URI.encode_www_form_component(value)
     end
 
     def log(method, uri, response)
-      config.logger&.debug { "[assetboar] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
+      config.logger&.debug { "[assethutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
     end
 
     # Normalizes the many things Ruby calls "a file" into [io, filename, content_type, byte_size].

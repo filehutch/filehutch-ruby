@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Assetboar
+module Assethutch
   class Project < Resource
     attribute :name, :team_id, :storage_ready
     time_attribute :created_at

@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-module Assetboar
+module Assethutch
   class Error < StandardError; end
 
   # Client-side problems: missing API key, bad arguments.
   class ConfigurationError < Error; end
 
-  # Could not reach AssetBoar or storage (DNS, timeout, TLS, reset).
+  # Could not reach AssetHutch or storage (DNS, timeout, TLS, reset).
   class ConnectionError < Error
     attr_reader :cause_error
 
@@ -16,7 +16,7 @@ module Assetboar
     end
   end
 
-  # AssetBoar answered with {"error": {"code", "message", "details"}}.
+  # AssetHutch answered with {"error": {"code", "message", "details"}}.
   class ApiError < Error
     attr_reader :code, :status, :details
 
@@ -54,9 +54,9 @@ module Assetboar
     def self.build(status, body)
       error = body.is_a?(Hash) && body["error"].is_a?(Hash) ? body["error"] : {}
       code = error["code"]&.to_s
-      message = error["message"] || (status >= 500 ? "AssetBoar returned HTTP #{status}" : "Request failed with HTTP #{status}")
+      message = error["message"] || (status >= 500 ? "AssetHutch returned HTTP #{status}" : "Request failed with HTTP #{status}")
       klass_name = CODE_CLASSES[code] || STATUS_CLASSES[status] || (status >= 500 ? :ServerError : :ApiError)
-      Assetboar.const_get(klass_name).new(message, code: code, status: status, details: error["details"])
+      Assethutch.const_get(klass_name).new(message, code: code, status: status, details: error["details"])
     end
   end
 
@@ -70,6 +70,6 @@ module Assetboar
   class ServerError < ApiError; end
   class StorageError < ApiError; end
 
-  # The direct PUT to storage failed, or AssetBoar could not verify it.
+  # The direct PUT to storage failed, or AssetHutch could not verify it.
   class UploadError < ApiError; end
 end

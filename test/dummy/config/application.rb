@@ -3,7 +3,7 @@
 require "rails"
 require "active_record/railtie"
 require "action_controller/railtie"
-require "assetboar"
+require "assethutch"
 
 module Dummy
   class Application < Rails::Application
