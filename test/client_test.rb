@@ -180,4 +180,67 @@ class ClientTest < ActiveSupport::TestCase
     Assethutch.project
     assert_match(/GET \/api\/v1\/project -> 200/, io.string)
   end
+
+  test "transforms lists the project's named sizes" do
+    stub_transforms
+    transforms = @client.transforms
+
+    assert_equal %w[avatar thumb], transforms.map(&:name)
+    thumb = transforms.last
+    assert_equal 400, thumb.width
+    assert_nil thumb.height
+    assert_equal "scale_down", thumb.fit
+    assert_equal "webp", thumb.format
+  end
+
+  test "project exposes transforms by name alongside policies" do
+    stub_project
+    assert_equal 200, @client.project.transform("avatar").width
+    assert_nil @client.project.transform("nope")
+  end
+
+  test "transform_url sends only the name and parses an expiring URL" do
+    stub_transform_url
+    result = @client.transform_url(ApiStubs::FILE_ID, transform: "avatar", expires_in: 600)
+
+    assert_equal Time.utc(2026, 9, 4, 13), result.expires_at
+    assert_match %r{/cdn-cgi/image/}, result.to_s
+    assert_requested :post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url",
+      body: { transform: "avatar", expires_in: 600 }.to_json
+  end
+
+  test "a public transform URL has no expiry" do
+    stub_transform_url(expires_at: nil)
+    assert_nil @client.transform_url(ApiStubs::FILE_ID, transform: "avatar").expires_at
+  end
+
+  test "a public image serves transform URLs off the payload without another request" do
+    stub_file(visibility: "public", content_type: "image/png",
+      transforms: { "avatar" => "https://cdn.test/cdn-cgi/image/width=200/x.png" })
+
+    assert_equal "https://cdn.test/cdn-cgi/image/width=200/x.png", @client.file(ApiStubs::FILE_ID).transform_url("avatar")
+    assert_not_requested :post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url"
+  end
+
+  test "a private image falls through to the API for a signed transform URL" do
+    stub_file(content_type: "image/png")
+    stub_transform_url
+
+    assert_match %r{/cdn-cgi/image/}, @client.file(ApiStubs::FILE_ID).transform_url("avatar", expires_in: 60)
+    assert_requested :post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url"
+  end
+
+  test "transform errors map to typed exceptions" do
+    stub_file(content_type: "image/png")
+    stub_request(:post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url")
+      .to_return(json(error_json("transforms_unsupported", "Amazon S3 cannot render image transforms."), 409))
+
+    error = assert_raises(Assethutch::TransformsUnsupportedError) { @client.file(ApiStubs::FILE_ID).transform_url("avatar") }
+    assert_match(/cannot render image transforms/, error.message)
+    assert_kind_of Assethutch::TransformError, error
+
+    stub_request(:post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url")
+      .to_return(json(error_json("transform_not_found", "No transform named \"nope\""), 422))
+    assert_raises(Assethutch::TransformError) { @client.file(ApiStubs::FILE_ID).transform_url("nope") }
+  end
 end

@@ -87,6 +87,7 @@ class AttachableTest < ActiveSupport::TestCase
     assert_nil Document.new.avatar
     assert_nil Document.new.avatar_url
     assert_nil Document.new.avatar_signed_url
+    assert_nil Document.new.avatar_transform_url("thumb")
   end
 
   test "url helpers" do
@@ -96,6 +97,19 @@ class AttachableTest < ActiveSupport::TestCase
     assert_equal "https://pub.test/me.png", doc.avatar_url
     assert_equal "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?signed=1", doc.avatar_signed_url(expires_in: 60)
     assert_requested :post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/signed_url", body: { expires_in: 60 }.to_json
+  end
+
+  test "transform url helper names a transform and nothing else" do
+    doc = Document.new(avatar: ApiStubs::FILE_ID)
+    stub_file(visibility: "public", content_type: "image/png", url: "https://pub.test/me.png",
+      transforms: { "thumb" => "https://pub.test/cdn-cgi/image/width=400/me.png" })
+
+    assert_equal "https://pub.test/cdn-cgi/image/width=400/me.png", doc.avatar_transform_url("thumb")
+
+    stub_transform_url
+    assert_match %r{/cdn-cgi/image/}, doc.avatar_transform_url("avatar", expires_in: 60)
+    assert_requested :post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url",
+      body: { transform: "avatar", expires_in: 60 }.to_json
   end
 
   test "assigning an Assethutch::File uses it without refetching" do

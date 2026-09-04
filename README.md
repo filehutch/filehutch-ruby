@@ -36,6 +36,8 @@ client.project                                  # => Assethutch::Project (storag
 client.upload(path_or_io, policy: "documents", metadata: { order_id: "ord_1" })
 client.file("file_…")                           # => Assethutch::File
 client.signed_url("file_…", expires_in: 3600, disposition: "attachment")  # => SignedUrl(url, expires_at)
+client.transforms                               # => [Assethutch::Transform] (avatar, thumb, hero…)
+client.transform_url("file_…", transform: "avatar", expires_in: 600)     # => SignedUrl (expires_at nil if public)
 client.delete_file("file_…")                    # => true; the id then reads as status "deleted"
 
 # The three steps, explicit:
@@ -48,8 +50,26 @@ upload.put(bytes).complete                      # => ready Assethutch::File
 source, then Marcel if loaded, then the extension.
 
 `Assethutch::File`: `id filename content_type byte_size checksum visibility status metadata policy
-url created_at`, plus `ready? pending? failed? deleted? public? private? image? pdf?`,
-`signed_url`, `url_or_signed_url`, `reload`, `delete`.
+url transforms created_at`, plus `ready? pending? failed? deleted? public? private? image? pdf?`,
+`signed_url`, `url_or_signed_url`, `transform_url`, `reload`, `delete`.
+
+### Image transforms
+
+Transforms are **named** in the AssetHutch dashboard — `avatar`, `thumb`, `hero` — and your code
+only ever says the name. No width, no format, no provider URL syntax, so resizing every avatar in
+your app is one dashboard edit.
+
+```ruby
+file.transforms                       # => {"avatar" => "https://…", "thumb" => "https://…"}
+file.transform_url("avatar")          # public images: free, the URL is already on the payload
+file.transform_url("avatar", expires_in: 600)   # private images: signed, one request
+```
+
+`Assethutch::Transform` (`client.transforms`, `project.transform("avatar")`) carries `name width
+height fit quality format` so you can render a `srcset` or a picture element from the definitions.
+
+Rendering depends on the project's storage. Where it cannot be done, you get a
+`TransformsUnsupportedError` whose message says what to set up — never a URL that 404s.
 
 ### Errors
 
@@ -64,6 +84,7 @@ Every failure is an `Assethutch::Error`. API errors carry `code`, `status`, and 
 | `InvalidRequestError` → `PolicyError` | bad params; content type or size the policy refuses |
 | `StorageNotReadyError` | project has no verified storage |
 | `InvalidStateError` | not ready, already deleted, not public |
+| `TransformError` → `TransformsUnsupportedError` | unknown transform or non-image; storage that cannot render |
 | `UploadError` | storage rejected the PUT, upload expired or incomplete, size mismatch |
 | `StorageError` | AssetHutch could not reach the bucket |
 | `RateLimitError`, `ServerError` | 429, 5xx |
@@ -90,6 +111,7 @@ user.avatar                             # => Assethutch::File or nil (fetched la
 user.avatar?                            # id present
 user.avatar_url                         # public URL (public policies only)
 user.avatar_signed_url(expires_in: 600) # any file
+user.avatar_transform_url("thumb")      # a named transform
 user.purge_avatar                       # delete remotely, clear the column
 ```
 
@@ -149,6 +171,7 @@ so a client cannot attach someone else's upload to the wrong field.
 | `has_one_attached :avatar` | `has_assethutch_file :avatar, policy: "avatars"` |
 | `active_storage_blobs` + `attachments` tables | `users.avatar_file_id` |
 | `url_for(user.avatar)` | `user.avatar_url` / `user.avatar_signed_url` |
+| `user.avatar.variant(resize_to_fill: [200, 200])` | `user.avatar_transform_url("avatar")`, defined once in the dashboard |
 | `user.avatar.purge` | `user.purge_avatar` |
 | `DirectUpload` JS | `assethutch/direct_upload_controller` |
 | service.yml, CORS, signed URL code | policies in the AssetHutch dashboard |

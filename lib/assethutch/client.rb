@@ -31,6 +31,19 @@ module Assethutch
       File.new(request(:get, "/api/v1/files/#{path_id(id)}").fetch("file"), client: self)
     end
 
+    def transforms
+      request(:get, "/api/v1/transforms").fetch("transforms").map { |t| Transform.new(t, client: self) }
+    end
+
+    # URL for one named transform. `expires_at` is nil for public files, which
+    # are delivered from a stable URL and never expire.
+    def transform_url(id, transform:, expires_in: nil)
+      body = { transform: transform.to_s, expires_in: expires_in }.compact
+      data = request(:post, "/api/v1/files/#{path_id(id)}/transform_url", body)
+      expires_at = data["expires_at"]
+      SignedUrl.new(url: data.fetch("url"), expires_at: expires_at && Time.iso8601(expires_at))
+    end
+
     def create_upload(policy:, filename:, content_type:, byte_size:, metadata: nil)
       body = { policy: policy, filename: filename, content_type: content_type, byte_size: byte_size }
       body[:metadata] = metadata if metadata && !metadata.empty?

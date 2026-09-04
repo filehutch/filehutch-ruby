@@ -42,6 +42,9 @@ module Assethutch
       "upload_expired" => :UploadError,
       "upload_incomplete" => :UploadError,
       "size_mismatch" => :UploadError,
+      "transform_not_found" => :TransformError,
+      "not_transformable" => :TransformError,
+      "transforms_unsupported" => :TransformsUnsupportedError,
       "storage_error" => :StorageError,
       "verification_failed" => :StorageError
     }.freeze
@@ -66,6 +69,10 @@ module Assethutch
   class PolicyError < InvalidRequestError; end
   class StorageNotReadyError < ApiError; end
   class InvalidStateError < ApiError; end
+  # A named transform is unknown, or the file is not an image.
+  class TransformError < InvalidRequestError; end
+  # The project's storage cannot render transforms. The message says what to set up.
+  class TransformsUnsupportedError < TransformError; end
   class RateLimitError < ApiError; end
   class ServerError < ApiError; end
   class StorageError < ApiError; end

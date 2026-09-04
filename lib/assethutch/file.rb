@@ -22,6 +22,16 @@ module Assethutch
     def pdf? = content_type == "application/pdf"
     def metadata = self["metadata"] || {}
 
+    # Named transform URLs, keyed by name. Filled for ready public images on
+    # storage that can render them; empty otherwise.
+    def transforms = self["transforms"] || {}
+
+    # URL for one named transform. Free for public images (the URL is already
+    # on the payload); one request for private ones, which get a signed source.
+    def transform_url(name, expires_in: nil)
+      transforms[name.to_s] || client!.transform_url(id, transform: name, expires_in: expires_in).url
+    end
+
     # Short-lived URL that works for private and public files alike.
     def signed_url(expires_in: nil, disposition: nil)
       client!.signed_url(id, expires_in: expires_in, disposition: disposition).url

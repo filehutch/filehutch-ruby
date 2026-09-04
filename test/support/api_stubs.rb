@@ -11,7 +11,7 @@ module ApiStubs
     {
       "id" => FILE_ID, "object" => "file", "filename" => "report.pdf", "content_type" => "application/pdf",
       "byte_size" => 11, "checksum" => "md5:abc", "visibility" => "private", "status" => "ready",
-      "metadata" => {}, "policy" => "documents", "storage_connection_id" => "conn_x", "url" => nil,
+      "metadata" => {}, "policy" => "documents", "storage_connection_id" => "conn_x", "url" => nil, "transforms" => {},
       "created_at" => "2026-09-04T12:00:00.000Z", "updated_at" => "2026-09-04T12:00:01.000Z"
     }.merge(overrides.transform_keys(&:to_s))
   end
@@ -29,6 +29,10 @@ module ApiStubs
         { "id" => "pol_docs", "name" => "documents", "allowed_content_types" => [ "application/pdf" ], "maximum_size" => 25_000_000, "visibility" => "private" },
         { "id" => "pol_avatars", "name" => "avatars", "allowed_content_types" => [ "image/*" ], "maximum_size" => 5_000_000, "visibility" => "public" }
       ],
+      "transforms" => [
+        { "id" => "trn_avatar", "object" => "transform", "name" => "avatar", "width" => 200, "height" => 200, "fit" => "cover", "quality" => nil, "format" => "auto" },
+        { "id" => "trn_thumb", "object" => "transform", "name" => "thumb", "width" => 400, "height" => nil, "fit" => "scale_down", "quality" => 80, "format" => "webp" }
+      ],
       "created_at" => "2026-09-01T00:00:00.000Z"
     }
   end
@@ -44,6 +48,16 @@ module ApiStubs
   def stub_project = stub_request(:get, "#{BASE}/api/v1/project").with(headers: AUTH).to_return(json("project" => project_json))
   def stub_file(id = FILE_ID, **overrides) = stub_request(:get, "#{BASE}/api/v1/files/#{id}").with(headers: AUTH).to_return(json("file" => file_json(id: id, **overrides)))
   def stub_delete(id = FILE_ID) = stub_request(:delete, "#{BASE}/api/v1/files/#{id}").with(headers: AUTH).to_return(status: 204, body: "")
+
+  def stub_transforms
+    stub_request(:get, "#{BASE}/api/v1/transforms").with(headers: AUTH)
+      .to_return(json("transforms" => project_json["transforms"]))
+  end
+
+  def stub_transform_url(id = FILE_ID, expires_at: "2026-09-04T13:00:00.000Z")
+    stub_request(:post, "#{BASE}/api/v1/files/#{id}/transform_url").with(headers: AUTH)
+      .to_return(json("url" => "#{STORAGE}/cdn-cgi/image/width=200/#{id}", "expires_at" => expires_at))
+  end
 
   def stub_signed_url(id = FILE_ID)
     stub_request(:post, "#{BASE}/api/v1/files/#{id}/signed_url").with(headers: AUTH)
