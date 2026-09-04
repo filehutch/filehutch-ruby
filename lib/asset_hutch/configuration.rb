@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Assethutch
+module AssetHutch
   # Global settings. Every value can come from the environment so a deploy
   # (or an AI agent) can configure the gem without touching Ruby.
   class Configuration
@@ -8,7 +8,7 @@ module Assethutch
 
     attr_accessor :api_key, :url, :open_timeout, :read_timeout, :write_timeout, :logger, :user_agent
 
-    # Rails direct uploads (see Assethutch::Engine).
+    # Rails direct uploads (see AssetHutch::Engine).
     #   authorize_direct_upload = ->(controller, policy) { controller.current_user.present? }
     attr_accessor :authorize_direct_upload, :direct_upload_parent_controller
 
@@ -25,8 +25,8 @@ module Assethutch
     end
 
     def validate!
-      raise ConfigurationError, "Assethutch.config.api_key is missing (set ASSETHUTCH_API_KEY)" if api_key.nil? || api_key.to_s.strip.empty?
-      raise ConfigurationError, "Assethutch.config.url is missing (set ASSETHUTCH_URL)" if url.nil? || url.to_s.strip.empty?
+      raise ConfigurationError, "AssetHutch.config.api_key is missing (set ASSETHUTCH_API_KEY)" if api_key.nil? || api_key.to_s.strip.empty?
+      raise ConfigurationError, "AssetHutch.config.url is missing (set ASSETHUTCH_URL)" if url.nil? || url.to_s.strip.empty?
       self
     end
   end

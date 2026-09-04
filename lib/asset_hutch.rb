@@ -7,24 +7,24 @@ require "net/http"
 require "uri"
 require "time"
 
-require_relative "assethutch/version"
-require_relative "assethutch/errors"
-require_relative "assethutch/configuration"
-require_relative "assethutch/resource"
-require_relative "assethutch/file"
-require_relative "assethutch/upload"
-require_relative "assethutch/project"
-require_relative "assethutch/client"
+require_relative "asset_hutch/version"
+require_relative "asset_hutch/errors"
+require_relative "asset_hutch/configuration"
+require_relative "asset_hutch/resource"
+require_relative "asset_hutch/file"
+require_relative "asset_hutch/upload"
+require_relative "asset_hutch/project"
+require_relative "asset_hutch/client"
 
 # AssetHutch: file infrastructure for apps that aren't Netflix.
 #
-#   Assethutch.configure { |c| c.api_key = ENV["ASSETHUTCH_API_KEY"] }
-#   file = Assethutch.upload("report.pdf", policy: "documents")   # => Assethutch::File (ready)
+#   AssetHutch.configure { |c| c.api_key = ENV["ASSETHUTCH_API_KEY"] }
+#   file = AssetHutch.upload("report.pdf", policy: "documents")   # => AssetHutch::File (ready)
 #   file.signed_url(expires_in: 3600)
-#   Assethutch::File.find(file.id).delete
+#   AssetHutch::File.find(file.id).delete
 #
 # Your application persists `file.id` ("file_…") and nothing else about storage.
-module Assethutch
+module AssetHutch
   class << self
     def configuration
       @configuration ||= Configuration.new
@@ -37,7 +37,7 @@ module Assethutch
       configuration
     end
 
-    # The shared client built from Assethutch.configuration.
+    # The shared client built from AssetHutch.configuration.
     def client
       @client ||= Client.new(configuration)
     end
@@ -57,4 +57,4 @@ module Assethutch
   end
 end
 
-require_relative "assethutch/rails" if defined?(::Rails::Railtie)
+require_relative "asset_hutch/rails" if defined?(::Rails::Railtie)

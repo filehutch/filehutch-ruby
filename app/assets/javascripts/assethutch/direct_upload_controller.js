@@ -1,7 +1,7 @@
 // AssetHutch browser-direct upload.
 //
 // The bytes go from the browser straight to storage; only two small JSON calls
-// hit your Rails app (mounted Assethutch::Engine), which holds the API key.
+// hit your Rails app (mounted AssetHutch::Engine), which holds the API key.
 //
 // Stimulus usage (register as "assethutch-direct-upload"):
 //

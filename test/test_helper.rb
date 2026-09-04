@@ -20,10 +20,10 @@ module ActiveSupport
     self.file_fixture_path = File.expand_path("fixtures/files", __dir__)
 
     setup do
-      Assethutch.instance_variable_set(:@configuration, nil)
-      Assethutch.reset_client!
-      Assethutch::Attachable.reset_policies!
-      Assethutch.config.authorize_direct_upload = nil
+      AssetHutch.instance_variable_set(:@configuration, nil)
+      AssetHutch.reset_client!
+      AssetHutch::Attachable.reset_policies!
+      AssetHutch.config.authorize_direct_upload = nil
     end
   end
 end
