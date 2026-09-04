@@ -50,6 +50,9 @@ class DirectUploadsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_equal({ "code" => "policy_violation", "message" => "too big" }, response.parsed_body["error"])
 
+    # An authorizer declared with a splat is handed the policy like any other,
+    # so completing looks the file up to find out what it was uploaded under.
+    stub_file
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/uploads/#{ApiStubs::FILE_ID}/complete").to_timeout
     post "/assethutch/uploads/#{ApiStubs::FILE_ID}/complete"
     assert_response :unprocessable_entity
@@ -67,5 +70,29 @@ class DirectUploadsControllerTest < ActionDispatch::IntegrationTest
     assert path.exist?
     assert_match(/export default class extends Controller/, path.read)
     assert_match(/export async function directUpload/, path.read)
+  end
+
+  test "complete authorizes against the policy the file was actually uploaded under" do
+    Assethutch.config.authorize_direct_upload = ->(controller, policy) { controller.current_user == "andy" && policy == "avatars" }
+    stub_upload_flow
+    stub_file(ApiStubs::FILE_ID, policy: "avatars")
+
+    post "/assethutch/uploads/#{ApiStubs::FILE_ID}/complete", as: :json, headers: { "X-User" => "andy" }
+    assert_response :success
+
+    # The policy is looked up, never taken from the client, so naming an allowed
+    # one cannot finalize an upload made under a policy the user may not use.
+    stub_file(ApiStubs::FILE_ID, policy: "documents")
+    post "/assethutch/uploads/#{ApiStubs::FILE_ID}/complete", params: { policy: "avatars" }, as: :json, headers: { "X-User" => "andy" }
+    assert_response :forbidden
+  end
+
+  test "an authorizer that only checks the user costs no policy lookup on complete" do
+    Assethutch.config.authorize_direct_upload = ->(controller) { controller.current_user == "andy" }
+    stub_upload_flow
+
+    post "/assethutch/uploads/#{ApiStubs::FILE_ID}/complete", as: :json, headers: { "X-User" => "andy" }
+    assert_response :success
+    assert_not_requested :get, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}"
   end
 end

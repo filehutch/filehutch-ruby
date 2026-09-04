@@ -1,0 +1,173 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# The Rails integration, against a live AssetHutch.
+#
+#   ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_… \
+#   PDF_PATH=test/fixtures/files/sample.pdf IMAGE_PATH=test/fixtures/files/sample.png \
+#   bin/dogfood-rails
+#
+# bin/dogfood proves the client. This proves everything built on top of it:
+# has_assethutch_file, the engine's direct-upload endpoints, replacement,
+# purge, and the local policy checks — none of which the unit suite exercises
+# against a real server, because it answers every request with WebMock.
+#
+# The project needs a private "documents" (application/pdf) policy and a public
+# "avatars" (image/*) policy with a public base URL on its storage connection.
+# Named transforms are skipped, not failed, when storage cannot render them.
+
+ENV["RAILS_ENV"] = "dogfood"
+ENV["ASSETHUTCH_URL"] ||= "http://localhost:3000"
+
+require "bundler/setup"
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+def env!(name) = ENV.fetch(name) { abort "Set #{name}" }
+env!("ASSETHUTCH_API_KEY")
+pdf_path, image_path = env!("PDF_PATH"), env!("IMAGE_PATH")
+
+require_relative "../test/dummy/config/application"
+Rails.application.initialize!
+ActiveRecord::Schema.verbose = false
+load File.expand_path("../test/dummy/db/schema.rb", __dir__)
+
+require "rack/test"
+require "stringio"
+
+def step(n, text)
+  print "#{n}. #{text} … "
+  puts(yield == :skipped ? "skipped" : "ok")
+rescue => e
+  puts "FAILED\n   #{e.class}: #{e.message}\n   #{e.backtrace.find { |l| l.include?('dogfood-rails') }}"
+  exit 1
+end
+
+def uploaded(path, type)
+  ActionDispatch::Http::UploadedFile.new(
+    tempfile: File.open(path, "rb"), filename: File.basename(path), type: type
+  )
+end
+
+client = Assethutch.client
+project = client.project
+puts "AssetHutch Rails dogfood against #{Assethutch.config.url}"
+puts "   project #{project.id}, policies: #{project.upload_policies.map(&:name).join(', ')}," \
+     " transforms: #{project.transforms.map(&:name).presence&.join(', ') || 'none'}"
+
+doc = Document.new(title: "Dogfood")
+first_report_id = nil
+
+step(1, "Assigning an upload to has_assethutch_file stores it on save") do
+  doc.report = uploaded(pdf_path, "application/pdf")
+  raise "column should stay empty until save" if doc.report_file_id.present?
+
+  raise "save failed: #{doc.errors.full_messages.to_sentence}" unless doc.save
+  first_report_id = doc.report_file_id
+  raise "no file id persisted" unless Assethutch::File.id?(first_report_id)
+  raise "expected ready, got #{doc.report.status}" unless doc.report.ready?
+end
+
+step(2, "The record holds an id and nothing about storage") do
+  row = Document.connection.select_one("SELECT * FROM documents WHERE id = #{doc.id}")
+  leaked = row.values.compact.grep(String).select { |v| v.match?(/bucket|r2|amazonaws|storage_key|https?:/i) }
+  raise "storage details leaked into the row: #{leaked.inspect}" if leaked.any?
+  raise "report_file_id is not an AssetHutch id" unless Assethutch::File.id?(row["report_file_id"])
+end
+
+step(3, "Signed URLs come back from the record and serve the bytes") do
+  url = doc.report_signed_url(expires_in: 120)
+  response = Net::HTTP.get_response(URI(url))
+  raise "signed url returned HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+  raise "bytes differ" unless response.body == File.binread(pdf_path)
+end
+
+step(4, "A policy violation is a validation error, not a round trip") do
+  before = Document.new(title: "Rejected")
+  before.report = uploaded(image_path, "image/png")
+  raise "expected the image to be rejected by the documents policy" if before.save
+  raise "wrong error: #{before.errors.full_messages.to_sentence}" unless before.errors[:report].any?
+  raise "nothing should have been uploaded" if before.report_file_id.present?
+end
+
+step(5, "Replacing an attachment deletes the file it replaced") do
+  doc.report = uploaded(pdf_path, "application/pdf")
+  raise "save failed: #{doc.errors.full_messages.to_sentence}" unless doc.save
+  raise "id did not change" if doc.report_file_id == first_report_id
+
+  replaced = client.file(first_report_id)
+  raise "expected the replaced file to be deleted, got #{replaced.status}" unless replaced.deleted?
+end
+
+step(6, "A public attachment exposes a stable URL and its named transforms") do
+  doc.avatar = uploaded(image_path, "image/png")
+  raise "save failed: #{doc.errors.full_messages.to_sentence}" unless doc.save
+
+  url = doc.avatar_url
+  raise "public file has no url (set a public base URL on the connection)" unless url
+  raise "public url returned #{Net::HTTP.get_response(URI(url)).code}" unless Net::HTTP.get_response(URI(url)).is_a?(Net::HTTPSuccess)
+
+  name = project.transforms.first&.name
+  next :skipped unless name
+
+  begin
+    transformed = doc.avatar_transform_url(name)
+    raise "transform url is not a URL: #{transformed.inspect}" unless transformed.to_s.start_with?("http")
+  rescue Assethutch::TransformsUnsupportedError
+    :skipped
+  end
+end
+
+step(7, "The engine's endpoints upload without the browser seeing the key") do
+  Assethutch.config.authorize_direct_upload = ->(controller, policy) { controller.current_user == "andy" && policy == "avatars" }
+  session = Rack::Test::Session.new(Rack::MockSession.new(Rails.application))
+  bytes = File.binread(image_path)
+
+  post_json = lambda do |path, body, headers = {}|
+    session.post(path, body.to_json, { "CONTENT_TYPE" => "application/json" }.merge(headers))
+    [ session.last_response.status, JSON.parse(session.last_response.body) ]
+  end
+
+  status, = post_json.call("/assethutch/uploads",
+    { policy: "avatars", filename: "browser.png", content_type: "image/png", byte_size: bytes.bytesize })
+  raise "an unauthorized browser should be refused, got #{status}" unless status == 403
+
+  status, created = post_json.call("/assethutch/uploads",
+    { policy: "avatars", filename: "browser.png", content_type: "image/png", byte_size: bytes.bytesize },
+    { "HTTP_X_USER" => "andy" })
+  raise "expected 201, got #{status}: #{created.inspect}" unless status == 201
+  raise "the API key must never be in a browser response" if session.last_response.body.include?(Assethutch.config.api_key)
+
+  upload = Assethutch::Upload.new(created.fetch("upload"), file: Assethutch::File.new(created.fetch("file")))
+  client.put_to_storage(upload, StringIO.new(bytes))
+
+  status, completed = post_json.call("/assethutch/uploads/#{upload.id}/complete", {}, { "HTTP_X_USER" => "andy" })
+  raise "expected 200, got #{status}: #{completed.inspect}" unless status == 200
+
+  # What the form would submit: an id and nothing else.
+  doc.avatar = completed.dig("file", "id")
+  raise "save failed: #{doc.errors.full_messages.to_sentence}" unless doc.save
+  raise "avatar id not stored" unless doc.avatar_file_id == completed.dig("file", "id")
+end
+
+step(8, "An id uploaded under the wrong policy cannot be attached") do
+  stray = client.upload(pdf_path, policy: "documents")
+  guarded = Document.new(title: "Guarded", report: stray.id)
+  raise "a documents file should be fine on the report attachment" unless guarded.valid?
+
+  guarded.report = "file_00000000000000000000"
+  raise "an unknown id should not validate" if guarded.valid?
+
+  client.delete_file(stray.id)
+end
+
+step(9, "purge deletes remotely and clears the column") do
+  id = doc.avatar_file_id
+  doc.purge_avatar
+  raise "column not cleared" if doc.reload.avatar_file_id.present?
+  raise "expected deleted, got #{client.file(id).status}" unless client.file(id).deleted?
+
+  doc.purge_report
+  raise "report column not cleared" if doc.reload.report_file_id.present?
+end
+
+puts "All steps passed."

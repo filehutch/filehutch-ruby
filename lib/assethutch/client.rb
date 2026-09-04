@@ -82,7 +82,13 @@ module Assethutch
 
     # PUT bytes to the storage URL in an upload authorization. Never hits an AssetHutch endpoint.
     def put_to_storage(upload, source)
-      io, _name, _type, size = Source.open(source, filename: upload.file&.filename, content_type: upload.headers["Content-Type"])
+      # The name is irrelevant to a PUT — the object's key is already fixed by the
+      # authorization — but Source needs one to normalize an in-memory source, and
+      # an upload rebuilt from JSON (a browser flow proxied through your app) does
+      # not carry its file.
+      io, _name, _type, size = Source.open(
+        source, filename: upload.file&.filename || "upload", content_type: upload.headers["Content-Type"]
+      )
       uri = URI(upload.url)
       req = Net::HTTP.const_get(upload.method.to_s.capitalize).new(uri)
       upload.headers.each { |k, v| req[k] = v }

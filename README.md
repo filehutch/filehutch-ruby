@@ -137,6 +137,12 @@ Assethutch.config.authorize_direct_upload = ->(controller, policy) do
 end
 ```
 
+The authorizer runs on both calls. On the first, `policy` is the one being requested. On the
+second there is no policy in the request, so it is **looked up from the file being finalized** —
+never taken from the client, which could otherwise name a policy it likes to finish an upload made
+under one it may not use. An authorizer that only checks the user (`->(controller) { … }`) skips
+that lookup, and so costs nothing extra.
+
 Register the Stimulus controller (importmap users get the pin from the generator; jsbundling users
 copy `app/assets/javascripts/assethutch/direct_upload_controller.js`):
 
@@ -182,11 +188,27 @@ so a client cannot attach someone else's upload to the wrong field.
 bundle install
 bin/test                        # unit + dummy Rails app
 bundle exec rubocop
-
-# Against a live AssetHutch (project with private "documents" and public "avatars" policies):
-ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_… \
-  PDF_PATH=test/fixtures/files/sample.pdf IMAGE_PATH=test/fixtures/files/sample.png bin/dogfood
 ```
+
+Against a live AssetHutch — a project with a private `documents` policy, a public `avatars` policy,
+and a public base URL on its storage connection:
+
+```sh
+export ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_…
+export PDF_PATH=test/fixtures/files/sample.pdf IMAGE_PATH=test/fixtures/files/sample.png
+
+bin/dogfood         # the client: the seven-step acceptance flow
+bin/dogfood-rails   # everything built on it, through the dummy app
+```
+
+`bin/dogfood-rails` runs the Rails integration against a real server rather than WebMock:
+attaching an upload and saving it, signed URLs from the record, a policy violation caught locally
+before any round trip, replacement deleting the file it replaced, public URLs and named
+transforms, the engine's endpoints refusing an unauthorized browser and never returning the API
+key, an id uploaded under the wrong policy being refused, and `purge` deleting remotely.
+
+Worth running before a release: it is what found the engine authorizing `complete` with no policy
+at all, which the unit suite could not see because it only ever exercised `create` that way.
 
 ## License
 
