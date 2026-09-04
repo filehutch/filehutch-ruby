@@ -21,8 +21,8 @@ gem "asset_hutch"
 
 ```sh
 bin/rails generate asset_hutch:install     # initializer, mounts the engine, importmap pin
-export ASSETHUTCH_API_KEY=ah_…             # Dashboard → API keys (project-scoped)
-export ASSETHUTCH_URL=https://…            # only when not using AssetHutch cloud
+export ASSET_HUTCH_API_KEY=ah_…             # Dashboard → API keys (project-scoped)
+export ASSET_HUTCH_URL=https://…            # only when not using AssetHutch cloud
 ```
 
 Without Rails: `AssetHutch.configure { |c| c.api_key = "ah_…" }`.
@@ -129,7 +129,7 @@ PUTs the bytes straight to storage.
 
 ```ruby
 # config/routes.rb (the install generator adds this)
-mount AssetHutch::Engine => "/assethutch"
+mount AssetHutch::Engine => "/asset_hutch"
 
 # config/initializers/asset_hutch.rb — closed until you say who may upload
 AssetHutch.config.authorize_direct_upload = ->(controller, policy) do
@@ -144,27 +144,27 @@ under one it may not use. An authorizer that only checks the user (`->(controlle
 that lookup, and so costs nothing extra.
 
 Register the Stimulus controller (importmap users get the pin from the generator; jsbundling users
-copy `app/assets/javascripts/assethutch/direct_upload_controller.js`):
+copy `app/assets/javascripts/asset_hutch/direct_upload_controller.js`):
 
 ```js
-import DirectUploadController from "assethutch/direct_upload_controller"
-application.register("assethutch-direct-upload", DirectUploadController)
+import DirectUploadController from "asset_hutch/direct_upload_controller"
+application.register("asset-hutch-direct-upload", DirectUploadController)
 ```
 
 ```erb
 <%= form_with model: @user do |f| %>
-  <div data-controller="assethutch-direct-upload" data-assethutch-direct-upload-policy-value="avatars">
-    <input type="file" accept="image/*" data-action="assethutch-direct-upload#upload">
-    <%= f.hidden_field :avatar_file_id, data: { assethutch_direct_upload_target: "fileId" } %>
-    <progress value="0" max="100" hidden data-assethutch-direct-upload-target="progress"></progress>
-    <p data-assethutch-direct-upload-target="status"></p>
+  <div data-controller="asset-hutch-direct-upload" data-asset-hutch-direct-upload-policy-value="avatars">
+    <input type="file" accept="image/*" data-action="asset-hutch-direct-upload#upload">
+    <%= f.hidden_field :avatar_file_id, data: { asset_hutch_direct_upload_target: "fileId" } %>
+    <progress value="0" max="100" hidden data-asset-hutch-direct-upload-target="progress"></progress>
+    <p data-asset-hutch-direct-upload-target="status"></p>
   </div>
   <%= f.submit %>
 <% end %>
 ```
 
-Submit buttons are disabled while uploading. The element dispatches `assethutch:start`,
-`assethutch:progress`, `assethutch:complete`, and `assethutch:error`. `directUpload(file, { url,
+Submit buttons are disabled while uploading. The element dispatches `asset-hutch:start`,
+`asset-hutch:progress`, `asset-hutch:complete`, and `asset-hutch:error`. `directUpload(file, { url,
 policy, onProgress })` is exported for use without Stimulus.
 
 On save, `has_asset_hutch_file` verifies the submitted id is a ready file under the declared policy,
@@ -179,7 +179,7 @@ so a client cannot attach someone else's upload to the wrong field.
 | `url_for(user.avatar)` | `user.avatar_url` / `user.avatar_signed_url` |
 | `user.avatar.variant(resize_to_fill: [200, 200])` | `user.avatar_transform_url("avatar")`, defined once in the dashboard |
 | `user.avatar.purge` | `user.purge_avatar` |
-| `DirectUpload` JS | `assethutch/direct_upload_controller` |
+| `DirectUpload` JS | `asset_hutch/direct_upload_controller` |
 | service.yml, CORS, signed URL code | policies in the AssetHutch dashboard |
 
 ## Development
@@ -194,7 +194,7 @@ Against a live AssetHutch — a project with a private `documents` policy, a pub
 and a public base URL on its storage connection:
 
 ```sh
-export ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_…
+export ASSET_HUTCH_URL=http://localhost:3000 ASSET_HUTCH_API_KEY=ah_…
 export PDF_PATH=test/fixtures/files/sample.pdf IMAGE_PATH=test/fixtures/files/sample.png
 
 bin/dogfood         # the client: the seven-step acceptance flow

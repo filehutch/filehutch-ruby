@@ -18,8 +18,8 @@ class InstallGeneratorTest < Rails::Generators::TestCase
   test "creates the initializer, mounts the engine, and pins the controller" do
     run_generator
     assert_file "config/initializers/asset_hutch.rb", /AssetHutch.configure/
-    assert_file "config/routes.rb", /mount AssetHutch::Engine => "\/assethutch"/
-    assert_file "config/importmap.rb", /pin "assethutch\/direct_upload_controller"/
+    assert_file "config/routes.rb", /mount AssetHutch::Engine => "\/asset_hutch"/
+    assert_file "config/importmap.rb", /pin "asset_hutch\/direct_upload_controller"/
   end
 end
 

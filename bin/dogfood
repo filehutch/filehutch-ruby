@@ -3,7 +3,7 @@
 
 # The AssetHutch acceptance flow, through this gem, against a live server.
 #
-#   ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_… \
+#   ASSET_HUTCH_URL=http://localhost:3000 ASSET_HUTCH_API_KEY=ah_… \
 #   PDF_PATH=report.pdf IMAGE_PATH=avatar.png bin/dogfood
 #
 # The project needs a private "documents" (application/pdf) policy and a public
@@ -26,7 +26,7 @@ rescue => e
   exit 1
 end
 
-client = AssetHutch::Client.new(api_key: env!("ASSETHUTCH_API_KEY"), url: ENV.fetch("ASSETHUTCH_URL", "http://localhost:3000"))
+client = AssetHutch::Client.new(api_key: env!("ASSET_HUTCH_API_KEY"), url: ENV.fetch("ASSET_HUTCH_URL", "http://localhost:3000"))
 pdf_path, image_path = env!("PDF_PATH"), env!("IMAGE_PATH")
 records = {} # what a customer's app would persist: file ids only
 

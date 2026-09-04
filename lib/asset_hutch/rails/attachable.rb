@@ -173,7 +173,7 @@ module AssetHutch
       def policy(name)
         policies[name] ||= AssetHutch.client.project.upload_policy(name)
       rescue AssetHutch::Error => e
-        AssetHutch.config.logger&.warn { "[assethutch] could not load upload policies: #{e.message}" }
+        AssetHutch.config.logger&.warn { "[asset_hutch] could not load upload policies: #{e.message}" }
         nil
       end
 

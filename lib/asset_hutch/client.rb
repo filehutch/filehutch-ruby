@@ -151,7 +151,7 @@ module AssetHutch
     end
 
     def log(method, uri, response)
-      config.logger&.debug { "[assethutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
+      config.logger&.debug { "[asset_hutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
     end
 
     # Normalizes the many things Ruby calls "a file" into [io, filename, content_type, byte_size].

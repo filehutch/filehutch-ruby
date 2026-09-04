@@ -7,7 +7,7 @@ class ClientTest < ActiveSupport::TestCase
 
   test "requires an api key" do
     error = assert_raises(AssetHutch::ConfigurationError) { AssetHutch::Client.new(api_key: nil) }
-    assert_match(/ASSETHUTCH_API_KEY/, error.message)
+    assert_match(/ASSET_HUTCH_API_KEY/, error.message)
   end
 
   test "keyword overrides win over the global configuration" do
@@ -42,7 +42,7 @@ class ClientTest < ActiveSupport::TestCase
 
   test "sends the user agent, bearer token, and json accept header" do
     stub = stub_request(:get, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}")
-      .with(headers: ApiStubs::AUTH.merge("Accept" => "application/json", "User-Agent" => /assethutch-ruby\/#{AssetHutch::VERSION}/))
+      .with(headers: ApiStubs::AUTH.merge("Accept" => "application/json", "User-Agent" => /asset_hutch-ruby\/#{AssetHutch::VERSION}/))
       .to_return(json("file" => file_json))
     @client.file(ApiStubs::FILE_ID)
     assert_requested stub
@@ -149,7 +149,7 @@ class ClientTest < ActiveSupport::TestCase
   test "network failures become ConnectionError" do
     stub_request(:get, "#{ApiStubs::BASE}/api/v1/project").to_timeout
     error = assert_raises(AssetHutch::ConnectionError) { @client.project }
-    assert_match(/assethutch.test/, error.message)
+    assert_match(/asset_hutch.test/, error.message)
     stub_request(:get, "#{ApiStubs::BASE}/api/v1/project").to_raise(Errno::ECONNREFUSED)
     assert_raises(AssetHutch::ConnectionError) { @client.project }
   end

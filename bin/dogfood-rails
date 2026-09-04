@@ -3,7 +3,7 @@
 
 # The Rails integration, against a live AssetHutch.
 #
-#   ASSETHUTCH_URL=http://localhost:3000 ASSETHUTCH_API_KEY=ah_… \
+#   ASSET_HUTCH_URL=http://localhost:3000 ASSET_HUTCH_API_KEY=ah_… \
 #   PDF_PATH=test/fixtures/files/sample.pdf IMAGE_PATH=test/fixtures/files/sample.png \
 #   bin/dogfood-rails
 #
@@ -17,13 +17,13 @@
 # Named transforms are skipped, not failed, when storage cannot render them.
 
 ENV["RAILS_ENV"] = "dogfood"
-ENV["ASSETHUTCH_URL"] ||= "http://localhost:3000"
+ENV["ASSET_HUTCH_URL"] ||= "http://localhost:3000"
 
 require "bundler/setup"
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
 def env!(name) = ENV.fetch(name) { abort "Set #{name}" }
-env!("ASSETHUTCH_API_KEY")
+env!("ASSET_HUTCH_API_KEY")
 pdf_path, image_path = env!("PDF_PATH"), env!("IMAGE_PATH")
 
 require_relative "../test/dummy/config/application"
@@ -127,11 +127,11 @@ step(7, "The engine's endpoints upload without the browser seeing the key") do
     [ session.last_response.status, JSON.parse(session.last_response.body) ]
   end
 
-  status, = post_json.call("/assethutch/uploads",
+  status, = post_json.call("/asset_hutch/uploads",
     { policy: "avatars", filename: "browser.png", content_type: "image/png", byte_size: bytes.bytesize })
   raise "an unauthorized browser should be refused, got #{status}" unless status == 403
 
-  status, created = post_json.call("/assethutch/uploads",
+  status, created = post_json.call("/asset_hutch/uploads",
     { policy: "avatars", filename: "browser.png", content_type: "image/png", byte_size: bytes.bytesize },
     { "HTTP_X_USER" => "andy" })
   raise "expected 201, got #{status}: #{created.inspect}" unless status == 201
@@ -140,7 +140,7 @@ step(7, "The engine's endpoints upload without the browser seeing the key") do
   upload = AssetHutch::Upload.new(created.fetch("upload"), file: AssetHutch::File.new(created.fetch("file")))
   client.put_to_storage(upload, StringIO.new(bytes))
 
-  status, completed = post_json.call("/assethutch/uploads/#{upload.id}/complete", {}, { "HTTP_X_USER" => "andy" })
+  status, completed = post_json.call("/asset_hutch/uploads/#{upload.id}/complete", {}, { "HTTP_X_USER" => "andy" })
   raise "expected 200, got #{status}: #{completed.inspect}" unless status == 200
 
   # What the form would submit: an id and nothing else.

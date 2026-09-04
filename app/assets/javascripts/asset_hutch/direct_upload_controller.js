@@ -3,19 +3,19 @@
 // The bytes go from the browser straight to storage; only two small JSON calls
 // hit your Rails app (mounted AssetHutch::Engine), which holds the API key.
 //
-// Stimulus usage (register as "assethutch-direct-upload"):
+// Stimulus usage (register as "asset-hutch-direct-upload"):
 //
-//   <div data-controller="assethutch-direct-upload"
-//        data-assethutch-direct-upload-url-value="/assethutch/uploads"
-//        data-assethutch-direct-upload-policy-value="avatars">
-//     <input type="file" data-action="assethutch-direct-upload#upload">
-//     <input type="hidden" name="user[avatar_file_id]" data-assethutch-direct-upload-target="fileId">
-//     <progress value="0" max="100" hidden data-assethutch-direct-upload-target="progress"></progress>
-//     <p data-assethutch-direct-upload-target="status"></p>
+//   <div data-controller="asset-hutch-direct-upload"
+//        data-asset-hutch-direct-upload-url-value="/asset_hutch/uploads"
+//        data-asset-hutch-direct-upload-policy-value="avatars">
+//     <input type="file" data-action="asset-hutch-direct-upload#upload">
+//     <input type="hidden" name="user[avatar_file_id]" data-asset-hutch-direct-upload-target="fileId">
+//     <progress value="0" max="100" hidden data-asset-hutch-direct-upload-target="progress"></progress>
+//     <p data-asset-hutch-direct-upload-target="status"></p>
 //   </div>
 //
-// Events on the element: assethutch:start, assethutch:progress ({percent}), assethutch:complete ({file}),
-// assethutch:error ({error}). The surrounding form's submit buttons are disabled while uploading.
+// Events on the element: asset-hutch:start, asset-hutch:progress ({percent}), asset-hutch:complete ({file}),
+// asset-hutch:error ({error}). The surrounding form's submit buttons are disabled while uploading.
 
 import { Controller } from "@hotwired/stimulus"
 
@@ -76,7 +76,7 @@ async function postJSON(url, body, csrfToken) {
 
 export default class extends Controller {
   static targets = ["fileId", "progress", "status"]
-  static values = { url: { type: String, default: "/assethutch/uploads" }, policy: String }
+  static values = { url: { type: String, default: "/asset_hutch/uploads" }, policy: String }
 
   async upload(event) {
     const file = event.target.files?.[0]
@@ -108,7 +108,7 @@ export default class extends Controller {
       this.progressTarget.hidden = !state
       if (state) this.progress(0)
     }
-    this.element.dataset.assethutchUploading = state ? "true" : "false"
+    this.element.dataset.assetHutchUploading = state ? "true" : "false"
   }
 
   progress(percent) {
@@ -119,7 +119,7 @@ export default class extends Controller {
   note(message, isError = false) {
     if (!this.hasStatusTarget) return
     this.statusTarget.textContent = message
-    this.statusTarget.dataset.assethutchState = isError ? "error" : "ok"
+    this.statusTarget.dataset.assetHutchState = isError ? "error" : "ok"
   }
 
   get submitButtons() {

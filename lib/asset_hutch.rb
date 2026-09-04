@@ -18,7 +18,7 @@ require_relative "asset_hutch/client"
 
 # AssetHutch: file infrastructure for apps that aren't Netflix.
 #
-#   AssetHutch.configure { |c| c.api_key = ENV["ASSETHUTCH_API_KEY"] }
+#   AssetHutch.configure { |c| c.api_key = ENV["ASSET_HUTCH_API_KEY"] }
 #   file = AssetHutch.upload("report.pdf", policy: "documents")   # => AssetHutch::File (ready)
 #   file.signed_url(expires_in: 3600)
 #   AssetHutch::File.find(file.id).delete

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] = "test"
-ENV["ASSETHUTCH_API_KEY"] = "ah_testTESTtestTESTtestTESTtestTESTtestTEST"
-ENV["ASSETHUTCH_URL"] = "https://assethutch.test"
+ENV["ASSET_HUTCH_API_KEY"] = "ah_testTESTtestTESTtestTESTtestTESTtestTEST"
+ENV["ASSET_HUTCH_URL"] = "https://asset_hutch.test"
 
 require_relative "dummy/config/application"
 Rails.application.initialize!
