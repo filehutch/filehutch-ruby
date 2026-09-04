@@ -1,0 +1,49 @@
+name: Release
+
+# Tag the version you are releasing, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
+#
+# Publishing uses RubyGems trusted publishing (OIDC), so there is no API key in
+# this repository to leak or rotate. Configure it once at
+# https://rubygems.org/gems/assethutch/trusted_publishers with this repository,
+# this workflow filename, and the `rubygems` environment below.
+on:
+  push:
+    tags: [ "v*" ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: rubygems
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # A tag that disagrees with the constant would publish a version nobody
+      # can find from the source, so stop before anything is built.
+      - name: Check the tag matches Assethutch::VERSION
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          declared="$(ruby -Ilib -rassethutch/version -e 'print Assethutch::VERSION')"
+          if [ "$tagged" != "$declared" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match Assethutch::VERSION ${declared}" >&2
+            exit 1
+          fi
+
+      - name: Run tests
+        run: bin/test
+
+      - name: Lint
+        run: bundle exec rubocop
+
+      - name: Build and push to RubyGems
+        uses: rubygems/release-gem@v1

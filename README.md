@@ -210,6 +210,19 @@ key, an id uploaded under the wrong policy being refused, and `purge` deleting r
 Worth running before a release: it is what found the engine authorizing `complete` with no policy
 at all, which the unit suite could not see because it only ever exercised `create` that way.
 
+## Releasing
+
+Bump `Assethutch::VERSION`, write the entry in `CHANGELOG.md`, then tag:
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The release workflow refuses a tag that disagrees with the constant, runs the suite and RuboCop,
+and publishes through RubyGems trusted publishing — no API key lives in this repository. Configure
+it once at https://rubygems.org/gems/assethutch/trusted_publishers against this repository,
+`.github/workflows/release.yml`, and the `rubygems` environment.
+
 ## License
 
 MIT
