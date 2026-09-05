@@ -90,6 +90,33 @@ Every failure is an `AssetHutch::Error`. API errors carry `code`, `status`, and 
 | `StorageError` | AssetHutch could not reach the bucket |
 | `RateLimitError`, `ServerError` | 429, 5xx |
 
+## Command line
+
+The gem ships `asset_hutch`. It reads `ASSET_HUTCH_API_KEY` and `ASSET_HUTCH_URL`.
+
+```sh
+asset_hutch export > asset_hutch.yml   # the project as a file
+asset_hutch plan                        # what apply would change (a read-only key is enough)
+asset_hutch apply                       # make the project match the file
+asset_hutch apply --prune               # also delete what the file leaves out; asks first
+asset_hutch inspect                     # project, environment, storage, plan and usage
+asset_hutch upload report.pdf --policy documents
+asset_hutch manifest > files.jsonl      # every ready file with its object key
+```
+
+```yaml
+# asset_hutch.yml
+uploads:
+  avatars:   { types: [image/jpeg, image/png, image/webp], max_size: 10MB, visibility: public }
+  documents: { types: [application/pdf], max_size: 25MB, visibility: private }
+transforms:
+  avatar: { width: 256, height: 256, fit: cover, format: auto }
+environments: [staging]
+```
+
+Unknown keys are refused. Nothing is deleted without `--prune`. Hand a coding agent a
+read-only key and it can `plan`; give it a write key when you like the plan.
+
 ## Webhooks
 
 AssetHutch signs every delivery: `AssetHutch-Signature: t=<unix>,v1=<hex>`
