@@ -90,6 +90,32 @@ Every failure is an `AssetHutch::Error`. API errors carry `code`, `status`, and 
 | `StorageError` | AssetHutch could not reach the bucket |
 | `RateLimitError`, `ServerError` | 429, 5xx |
 
+## Webhooks
+
+AssetHutch signs every delivery: `AssetHutch-Signature: t=<unix>,v1=<hex>`
+where `v1 = HMAC-SHA256(secret, "<t>.<body>")`. Verify before trusting the
+body, and deduplicate on the event `id` (deliveries are at-least-once):
+
+```ruby
+class AssetHutchWebhooksController < ActionController::API
+  def create
+    event = AssetHutch::Webhook.construct_event(
+      request.raw_post, request.headers["AssetHutch-Signature"], ENV.fetch("ASSET_HUTCH_WEBHOOK_SECRET")
+    )
+    case event["type"]
+    when "file.created" then Document.find_by(asset_hutch_file_id: event.dig("data", "file", "id"))&.update!(ready: true)
+    when "file.deleted" then Document.where(asset_hutch_file_id: event.dig("data", "file", "id")).destroy_all
+    end
+    head :ok
+  rescue AssetHutch::SignatureVerificationError
+    head :bad_request
+  end
+end
+```
+
+`construct_event` rejects signatures older than five minutes; pass
+`tolerance:` to change that.
+
 ## Rails
 
 ### Model

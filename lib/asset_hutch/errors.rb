@@ -6,6 +6,9 @@ module AssetHutch
   # Client-side problems: missing API key, bad arguments.
   class ConfigurationError < Error; end
 
+  # A webhook body was not signed by AssetHutch with your endpoint's secret.
+  class SignatureVerificationError < Error; end
+
   # Could not reach AssetHutch or storage (DNS, timeout, TLS, reset).
   class ConnectionError < Error
     attr_reader :cause_error
