@@ -49,11 +49,15 @@ module AssetHutch
       "not_transformable" => :TransformError,
       "transforms_unsupported" => :TransformsUnsupportedError,
       "plan_limit" => :PlanLimitError,
+      "read_only_key" => :PermissionError,
+      "invalid_config" => :ConfigError,
+      "environment_not_found" => :InvalidRequestError,
+      "not_verified" => :InvalidStateError,
       "storage_error" => :StorageError,
       "verification_failed" => :StorageError
     }.freeze
 
-    STATUS_CLASSES = { 401 => :AuthenticationError, 403 => :AuthenticationError, 404 => :NotFoundError,
+    STATUS_CLASSES = { 401 => :AuthenticationError, 403 => :PermissionError, 404 => :NotFoundError,
                        402 => :PlanLimitError, 409 => :InvalidStateError, 410 => :InvalidStateError, 422 => :InvalidRequestError,
                        429 => :RateLimitError, 502 => :StorageError }.freeze
 
@@ -68,9 +72,13 @@ module AssetHutch
   end
 
   class AuthenticationError < ApiError; end
+  # The key is valid but may not do this: a read-only key calling a write endpoint.
+  class PermissionError < AuthenticationError; end
   class NotFoundError < ApiError; end
   class InvalidRequestError < ApiError; end
   class PolicyError < InvalidRequestError; end
+  # A declarative config the API refused: unknown key, bad size, bad name.
+  class ConfigError < InvalidRequestError; end
   class StorageNotReadyError < ApiError; end
   class InvalidStateError < ApiError; end
   # A named transform is unknown, or the file is not an image.

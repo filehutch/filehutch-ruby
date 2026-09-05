@@ -85,6 +85,8 @@ Every failure is an `AssetHutch::Error`. API errors carry `code`, `status`, and 
 | `StorageNotReadyError` | project has no verified storage |
 | `InvalidStateError` | not ready, already deleted, not public |
 | `PlanLimitError` | 402: the team is out of storage or projects on its plan |
+| `PermissionError` | 403 / `read_only_key`: the key is read-only and this changes something |
+| `ConfigError` | `invalid_config`: the config file has an unknown key, bad size or bad name |
 | `TransformError` → `TransformsUnsupportedError` | unknown transform or non-image; storage that cannot render |
 | `UploadError` | storage rejected the PUT, upload expired or incomplete, size mismatch |
 | `StorageError` | AssetHutch could not reach the bucket |
