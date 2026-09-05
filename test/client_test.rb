@@ -268,4 +268,15 @@ class ClientTest < ActiveSupport::TestCase
       @client.create_upload(policy: "documents", filename: "r.pdf", content_type: "application/pdf", byte_size: 11)
     end
   end
+
+  test "read-only keys and bad configs are their own errors" do
+    stub_request(:post, "#{ApiStubs::BASE}/api/v1/config/apply").to_return(json(error_json("read_only_key", "This API key is read-only"), 403))
+    error = assert_raises(AssetHutch::PermissionError) { AssetHutch.client.apply_config({}) }
+    assert_kind_of AssetHutch::AuthenticationError, error
+    assert_equal "read_only_key", error.code
+
+    stub_request(:post, "#{ApiStubs::BASE}/api/v1/config/plan").to_return(json(error_json("invalid_config", "uploads.docs: unknown key ttl"), 422))
+    error = assert_raises(AssetHutch::ConfigError) { AssetHutch.client.plan_config({}) }
+    assert_kind_of AssetHutch::InvalidRequestError, error
+  end
 end
