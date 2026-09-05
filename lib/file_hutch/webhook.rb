@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-module AssetHutch
-  # Verifies the signature AssetHutch puts on every webhook delivery:
+module FileHutch
+  # Verifies the signature FileHutch puts on every webhook delivery:
   #
-  #   AssetHutch-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<body>")>
+  #   FileHutch-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<body>")>
   #
-  #   event = AssetHutch::Webhook.construct_event(request.raw_post, request.headers["AssetHutch-Signature"], secret)
+  #   event = FileHutch::Webhook.construct_event(request.raw_post, request.headers["FileHutch-Signature"], secret)
   #   case event["type"]
-  #   when "file.created" then Document.find_by(asset_hutch_file_id: event["data"]["file"]["id"])&.ready!
+  #   when "file.created" then Document.find_by(file_hutch_file_id: event["data"]["file"]["id"])&.ready!
   #   end
   module Webhook
-    HEADER = "AssetHutch-Signature"
+    HEADER = "FileHutch-Signature"
     DEFAULT_TOLERANCE = 300
 
     # Returns the parsed event. Raises SignatureVerificationError if the body was

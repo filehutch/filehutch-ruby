@@ -3,16 +3,16 @@
 require "yaml"
 require "optparse"
 
-module AssetHutch
-  # `asset_hutch` on the command line. Plan/apply a project's config file,
+module FileHutch
+  # `file_hutch` on the command line. Plan/apply a project's config file,
   # export it, inspect the project, upload a file, dump the manifest.
-  # Reads ASSET_HUTCH_API_KEY and ASSET_HUTCH_URL like the library does.
+  # Reads FILE_HUTCH_API_KEY and FILE_HUTCH_URL like the library does.
   class CLI
-    DEFAULT_FILE = "asset_hutch.yml"
+    DEFAULT_FILE = "file_hutch.yml"
     MARK = { "create" => "+", "update" => "~", "delete" => "-", "noop" => "=" }.freeze
 
     USAGE = <<~TEXT
-      Usage: asset_hutch <command> [options]
+      Usage: file_hutch <command> [options]
 
         plan    [FILE] [--prune]          show what apply would change (read-only keys allowed)
         apply   [FILE] [--prune] [--yes]  make the project match FILE
@@ -24,7 +24,7 @@ module AssetHutch
 
       FILE defaults to #{DEFAULT_FILE}. Nothing is deleted without --prune; with --prune,
       apply asks before deleting unless --yes is given.
-      Environment: ASSET_HUTCH_API_KEY (required), ASSET_HUTCH_URL.
+      Environment: FILE_HUTCH_API_KEY (required), FILE_HUTCH_URL.
     TEXT
 
     def initialize(argv, out: $stdout, err: $stderr, input: $stdin, client: nil)
@@ -41,7 +41,7 @@ module AssetHutch
       when "inspect" then inspect_project
       when "upload" then upload
       when "manifest" then manifest
-      when "version", "--version", "-v" then print_and_succeed("asset_hutch #{VERSION}")
+      when "version", "--version", "-v" then print_and_succeed("file_hutch #{VERSION}")
       when nil, "help", "--help", "-h" then print_and_succeed(USAGE)
       else
         @err.puts("Unknown command #{command.inspect}\n\n#{USAGE}")
@@ -51,10 +51,10 @@ module AssetHutch
       @err.puts(e.message)
       2
     rescue ApiError => e
-      @err.puts("AssetHutch said no (#{e.code}): #{e.message}")
+      @err.puts("FileHutch said no (#{e.code}): #{e.message}")
       1
     rescue ConnectionError => e
-      @err.puts("Could not reach AssetHutch: #{e.message}")
+      @err.puts("Could not reach FileHutch: #{e.message}")
       1
     end
 
@@ -150,7 +150,7 @@ module AssetHutch
       paths = parser.parse(@argv)
       path = paths.first
       if path.nil? || options[:policy].nil?
-        @err.puts "Usage: asset_hutch upload PATH --policy NAME"
+        @err.puts "Usage: file_hutch upload PATH --policy NAME"
         return 2
       end
       unless ::File.file?(path)
@@ -189,7 +189,7 @@ module AssetHutch
 
     def read_config(path)
       unless ::File.file?(path)
-        @err.puts "No config file at #{path}. Run `asset_hutch export > #{DEFAULT_FILE}` to start from what you have."
+        @err.puts "No config file at #{path}. Run `file_hutch export > #{DEFAULT_FILE}` to start from what you have."
         return nil
       end
       data = YAML.safe_load(::File.read(path), aliases: true) || {}

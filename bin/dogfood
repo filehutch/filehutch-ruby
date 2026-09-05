@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# The AssetHutch acceptance flow, through this gem, against a live server.
+# The FileHutch acceptance flow, through this gem, against a live server.
 #
-#   ASSET_HUTCH_URL=http://localhost:3000 ASSET_HUTCH_API_KEY=ah_… \
+#   FILE_HUTCH_URL=http://localhost:3000 FILE_HUTCH_API_KEY=fh_… \
 #   PDF_PATH=report.pdf IMAGE_PATH=avatar.png bin/dogfood
 #
 # The project needs a private "documents" (application/pdf) policy and a public
@@ -12,7 +12,7 @@
 # project's storage cannot render them.
 
 require "bundler/setup"
-require "asset_hutch"
+require "file_hutch"
 require "net/http"
 
 def env!(name) = ENV.fetch(name) { abort "Set #{name}" }
@@ -26,12 +26,12 @@ rescue => e
   exit 1
 end
 
-client = AssetHutch::Client.new(api_key: env!("ASSET_HUTCH_API_KEY"), url: ENV.fetch("ASSET_HUTCH_URL", "http://localhost:3000"))
+client = FileHutch::Client.new(api_key: env!("FILE_HUTCH_API_KEY"), url: ENV.fetch("FILE_HUTCH_URL", "http://localhost:3000"))
 pdf_path, image_path = env!("PDF_PATH"), env!("IMAGE_PATH")
 records = {} # what a customer's app would persist: file ids only
 
 project = client.project
-puts "AssetHutch dogfood against #{client.config.url}"
+puts "FileHutch dogfood against #{client.config.url}"
 puts "   project #{project.id} on #{project.storage_mode}/#{project.storage_provider}, policies: #{project.upload_policies.map(&:name).join(', ')}"
 
 pdf = image = nil
@@ -74,27 +74,27 @@ step(5, "Named transforms resolve without the app naming a size or a provider") 
   raise "transform url is not a URL: #{url.inspect}" unless url.to_s.start_with?("http")
   response = fetch(url)
   raise "transform url returned HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
-rescue AssetHutch::TransformsUnsupportedError
+rescue FileHutch::TransformsUnsupportedError
   :skipped # this project's storage cannot render them; every other step still holds
 end
 
 step(6, "Policy violations raise typed errors") do
   client.upload(image_path, policy: "documents", content_type: "image/png")
-  raise "expected AssetHutch::PolicyError"
-rescue AssetHutch::PolicyError => e
+  raise "expected FileHutch::PolicyError"
+rescue FileHutch::PolicyError => e
   raise "wrong code #{e.code}" unless e.code == "policy_violation"
 end
 
-step(7, "Only AssetHutch file ids were persisted") do
-  records.each_value { |id| raise "#{id.inspect} is not a file id" unless AssetHutch::File.id?(id) }
+step(7, "Only FileHutch file ids were persisted") do
+  records.each_value { |id| raise "#{id.inspect} is not a file id" unless FileHutch::File.id?(id) }
   raise "storage_key leaked" if [ pdf, image ].to_json.include?("storage_key")
 end
 
-step(8, "Delete both through AssetHutch") do
+step(8, "Delete both through FileHutch") do
   raise "pdf not deleted" unless pdf.delete.deleted?
   raise "image not deleted" unless image.delete.deleted?
-  raise "expected InvalidStateError on double delete" unless (client.delete_file(pdf.id) rescue $!).is_a?(AssetHutch::InvalidStateError)
-  raise "expected NotFoundError" unless (client.file("file_00000000000000000000") rescue $!).is_a?(AssetHutch::NotFoundError)
+  raise "expected InvalidStateError on double delete" unless (client.delete_file(pdf.id) rescue $!).is_a?(FileHutch::InvalidStateError)
+  raise "expected NotFoundError" unless (client.file("file_00000000000000000000") rescue $!).is_a?(FileHutch::NotFoundError)
 end
 
 puts "All steps passed. Demo records: #{records.inspect}"

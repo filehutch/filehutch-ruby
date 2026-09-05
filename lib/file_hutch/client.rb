@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module AssetHutch
-  # HTTP client for the AssetHutch v1 API. Stdlib only.
+module FileHutch
+  # HTTP client for the FileHutch v1 API. Stdlib only.
   #
-  #   client = AssetHutch::Client.new(api_key: "ah_…", url: "https://api.assethutch.com")
+  #   client = FileHutch::Client.new(api_key: "fh_…", url: "https://api.filehutch.com")
   #   client.upload("report.pdf", policy: "documents")        # 3-step direct upload, returns the ready file
   #   client.file("file_…").signed_url(expires_in: 600)
   class Client
@@ -15,7 +15,7 @@ module AssetHutch
 
     # Accepts a Configuration or keyword overrides on top of the global one.
     def initialize(config = nil, **overrides)
-      @config = (config || AssetHutch.configuration).dup
+      @config = (config || FileHutch.configuration).dup
       overrides.each { |k, v| @config.public_send(:"#{k}=", v) }
       @config.validate!
       @base = URI(@config.url.to_s.sub(%r{/+\z}, ""))
@@ -35,7 +35,7 @@ module AssetHutch
       request(:get, "/api/v1/transforms").fetch("transforms").map { |t| Transform.new(t, client: self) }
     end
 
-    # -- Declarative configuration (see `asset_hutch plan|apply`) -----------
+    # -- Declarative configuration (see `file_hutch plan|apply`) -----------
 
     # The project as a config hash: {"uploads" => {...}, "transforms" => {...}, "environments" => [...]}.
     # (`config` is the client's own settings.)
@@ -95,7 +95,7 @@ module AssetHutch
     #
     # source: a path, Pathname, File, Tempfile, StringIO, ActionDispatch::Http::UploadedFile,
     #         or a String of bytes (pass filename: then).
-    # Returns the ready AssetHutch::File. Bytes go straight to storage.
+    # Returns the ready FileHutch::File. Bytes go straight to storage.
     def upload(source, policy:, filename: nil, content_type: nil, metadata: nil)
       io, name, type, size = Source.open(source, filename: filename, content_type: content_type)
       upload = create_upload(policy: policy, filename: name, content_type: type, byte_size: size, metadata: metadata)
@@ -105,7 +105,7 @@ module AssetHutch
       io&.close if io && Source.owned?(io, source)
     end
 
-    # PUT bytes to the storage URL in an upload authorization. Never hits an AssetHutch endpoint.
+    # PUT bytes to the storage URL in an upload authorization. Never hits an FileHutch endpoint.
     def put_to_storage(upload, source)
       # The name is irrelevant to a PUT — the object's key is already fixed by the
       # authorization — but Source needs one to normalize an in-memory source, and
@@ -171,12 +171,12 @@ module AssetHutch
 
     def path_id(id)
       value = id.respond_to?(:id) ? id.id : id.to_s
-      raise ArgumentError, "expected an AssetHutch id, got #{id.inspect}" if value.to_s.empty? || value.to_s.include?("/")
+      raise ArgumentError, "expected an FileHutch id, got #{id.inspect}" if value.to_s.empty? || value.to_s.include?("/")
       URI.encode_www_form_component(value)
     end
 
     def log(method, uri, response)
-      config.logger&.debug { "[asset_hutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
+      config.logger&.debug { "[file_hutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
     end
 
     # Normalizes the many things Ruby calls "a file" into [io, filename, content_type, byte_size].

@@ -3,10 +3,10 @@
 require "rails/generators"
 require "rails/generators/active_record"
 
-module AssetHutch
+module FileHutch
   module Generators
-    # bin/rails generate asset_hutch:attachment User avatar
-    # Adds users.avatar_file_id (string). Pair with `has_asset_hutch_file :avatar, policy: "…"`.
+    # bin/rails generate file_hutch:attachment User avatar
+    # Adds users.avatar_file_id (string). Pair with `has_file_hutch_file :avatar, policy: "…"`.
     class AttachmentGenerator < ::Rails::Generators::NamedBase
       include ::ActiveRecord::Generators::Migration
 
@@ -18,7 +18,7 @@ module AssetHutch
       end
 
       def show_macro
-        say %(Add to #{class_name}:  has_asset_hutch_file :#{attachment}, policy: "#{attachment.pluralize}"), :green
+        say %(Add to #{class_name}:  has_file_hutch_file :#{attachment}, policy: "#{attachment.pluralize}"), :green
       end
 
       private

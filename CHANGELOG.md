@@ -6,23 +6,23 @@ First release.
 
 ### Client
 
-- `AssetHutch::Client`: project, uploads (create, complete, and a one-call `upload` that streams
+- `FileHutch::Client`: project, uploads (create, complete, and a one-call `upload` that streams
   straight to storage), files, signed URLs, named transforms, delete.
 - Typed errors mapped from the API's `error.code`, so callers match on a class or a code rather
   than a message.
 
 ### Rails
 
-- `has_asset_hutch_file` for Active Record. One `<name>_file_id` column; nothing about storage
+- `has_file_hutch_file` for Active Record. One `<name>_file_id` column; nothing about storage
   reaches your schema.
-- `AssetHutch::Engine` mounts the two direct-upload endpoints, keeping the API key on the server
+- `FileHutch::Engine` mounts the two direct-upload endpoints, keeping the API key on the server
   behind an authorizer you define.
 - A Stimulus controller and a framework-neutral `directUpload` function.
-- `asset_hutch:install` and `asset_hutch:attachment` generators.
+- `file_hutch:install` and `file_hutch:attachment` generators.
 
 ### Image transforms
 
-- Transforms are named in the AssetHutch dashboard; your code only ever says the name.
+- Transforms are named in the FileHutch dashboard; your code only ever says the name.
   `file.transforms`, `file.transform_url("avatar")`, `user.avatar_transform_url("thumb")`,
   `client.transforms`, `project.transform("avatar")`.
 - `TransformsUnsupportedError` carries the message naming what to set up, rather than handing back

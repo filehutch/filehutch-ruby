@@ -2,6 +2,6 @@ test: &default
   adapter: sqlite3
   database: ":memory:"
 
-# bin/dogfood-rails drives the same app against a live AssetHutch.
+# bin/dogfood-rails drives the same app against a live FileHutch.
 dogfood:
   <<: *default

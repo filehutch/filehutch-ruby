@@ -3,15 +3,15 @@
 require "test_helper"
 
 class ClientTest < ActiveSupport::TestCase
-  setup { @client = AssetHutch::Client.new }
+  setup { @client = FileHutch::Client.new }
 
   test "requires an api key" do
-    error = assert_raises(AssetHutch::ConfigurationError) { AssetHutch::Client.new(api_key: nil) }
-    assert_match(/ASSET_HUTCH_API_KEY/, error.message)
+    error = assert_raises(FileHutch::ConfigurationError) { FileHutch::Client.new(api_key: nil) }
+    assert_match(/FILE_HUTCH_API_KEY/, error.message)
   end
 
   test "keyword overrides win over the global configuration" do
-    client = AssetHutch::Client.new(url: "https://other.test/")
+    client = FileHutch::Client.new(url: "https://other.test/")
     stub_request(:get, "https://other.test/api/v1/project").to_return(json("project" => project_json))
     assert_equal "proj_x", client.project.id
   end
@@ -37,12 +37,12 @@ class ClientTest < ActiveSupport::TestCase
     assert_nil file.url
     assert_equal Time.utc(2026, 9, 4, 12), file.created_at
     assert_equal ApiStubs::FILE_ID, file.to_param
-    assert_equal file, AssetHutch::File.new(file.to_h)
+    assert_equal file, FileHutch::File.new(file.to_h)
   end
 
   test "sends the user agent, bearer token, and json accept header" do
     stub = stub_request(:get, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}")
-      .with(headers: ApiStubs::AUTH.merge("Accept" => "application/json", "User-Agent" => /asset_hutch-ruby\/#{AssetHutch::VERSION}/))
+      .with(headers: ApiStubs::AUTH.merge("Accept" => "application/json", "User-Agent" => /file_hutch-ruby\/#{FileHutch::VERSION}/))
       .to_return(json("file" => file_json))
     @client.file(ApiStubs::FILE_ID)
     assert_requested stub
@@ -77,14 +77,14 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "upload guesses content types from the extension when Marcel is absent" do
-    assert_equal "image/webp", AssetHutch::Client::Source.guess_content_type(nil, "x.webp")
-    assert_equal "application/octet-stream", AssetHutch::Client::Source.guess_content_type(nil, "x.unknownext")
+    assert_equal "image/webp", FileHutch::Client::Source.guess_content_type(nil, "x.webp")
+    assert_equal "application/octet-stream", FileHutch::Client::Source.guess_content_type(nil, "x.unknownext")
   end
 
   test "a storage rejection raises UploadError with the storage status" do
     stub_upload_flow
     stub_request(:put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1").to_return(status: 403, body: "<Error>SignatureDoesNotMatch</Error>")
-    error = assert_raises(AssetHutch::UploadError) { @client.upload(file_fixture("sample.pdf"), policy: "documents") }
+    error = assert_raises(FileHutch::UploadError) { @client.upload(file_fixture("sample.pdf"), policy: "documents") }
     assert_equal 403, error.status
     assert_equal "storage_rejected", error.code
     assert_match(/SignatureDoesNotMatch/, error.message)
@@ -100,36 +100,36 @@ class ClientTest < ActiveSupport::TestCase
 
     stub_file
     assert_equal signed.url, @client.file(ApiStubs::FILE_ID).signed_url
-    assert_equal signed.url, AssetHutch::File.new(file_json).url_or_signed_url
-    assert_equal "https://pub.test/a.png", AssetHutch::File.new(file_json(url: "https://pub.test/a.png")).url_or_signed_url
+    assert_equal signed.url, FileHutch::File.new(file_json).url_or_signed_url
+    assert_equal "https://pub.test/a.png", FileHutch::File.new(file_json(url: "https://pub.test/a.png")).url_or_signed_url
   end
 
   test "delete returns true and File#delete reloads as deleted" do
     stub_delete
     assert @client.delete_file(ApiStubs::FILE_ID)
     stub_file(status: "deleted")
-    assert AssetHutch::File.new(file_json, client: @client).delete.deleted?
+    assert FileHutch::File.new(file_json, client: @client).delete.deleted?
   end
 
   test "accepts resources anywhere an id is expected and rejects junk ids" do
     stub_delete
-    assert @client.delete_file(AssetHutch::File.new(file_json))
+    assert @client.delete_file(FileHutch::File.new(file_json))
     assert_raises(ArgumentError) { @client.file("") }
     assert_raises(ArgumentError) { @client.file("a/b") }
   end
 
   test "maps api error codes to typed errors" do
     {
-      [ 401, "unauthorized" ] => AssetHutch::AuthenticationError,
-      [ 404, "not_found" ] => AssetHutch::NotFoundError,
-      [ 422, "invalid" ] => AssetHutch::InvalidRequestError,
-      [ 422, "policy_violation" ] => AssetHutch::PolicyError,
-      [ 409, "storage_not_ready" ] => AssetHutch::StorageNotReadyError,
-      [ 410, "already_deleted" ] => AssetHutch::InvalidStateError,
-      [ 409, "upload_incomplete" ] => AssetHutch::UploadError,
-      [ 502, "storage_error" ] => AssetHutch::StorageError,
-      [ 429, nil ] => AssetHutch::RateLimitError,
-      [ 500, nil ] => AssetHutch::ServerError
+      [ 401, "unauthorized" ] => FileHutch::AuthenticationError,
+      [ 404, "not_found" ] => FileHutch::NotFoundError,
+      [ 422, "invalid" ] => FileHutch::InvalidRequestError,
+      [ 422, "policy_violation" ] => FileHutch::PolicyError,
+      [ 409, "storage_not_ready" ] => FileHutch::StorageNotReadyError,
+      [ 410, "already_deleted" ] => FileHutch::InvalidStateError,
+      [ 409, "upload_incomplete" ] => FileHutch::UploadError,
+      [ 502, "storage_error" ] => FileHutch::StorageError,
+      [ 429, nil ] => FileHutch::RateLimitError,
+      [ 500, nil ] => FileHutch::ServerError
     }.each do |(status, code), klass|
       body = code ? error_json(code, "boom", details: { "x" => 1 }) : nil
       stub_request(:get, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}").to_return(status: status, body: body&.to_json || "<html>", headers: { "Content-Type" => "application/json" })
@@ -148,20 +148,20 @@ class ClientTest < ActiveSupport::TestCase
 
   test "network failures become ConnectionError" do
     stub_request(:get, "#{ApiStubs::BASE}/api/v1/project").to_timeout
-    error = assert_raises(AssetHutch::ConnectionError) { @client.project }
-    assert_match(/asset_hutch.test/, error.message)
+    error = assert_raises(FileHutch::ConnectionError) { @client.project }
+    assert_match(/file_hutch.test/, error.message)
     stub_request(:get, "#{ApiStubs::BASE}/api/v1/project").to_raise(Errno::ECONNREFUSED)
-    assert_raises(AssetHutch::ConnectionError) { @client.project }
+    assert_raises(FileHutch::ConnectionError) { @client.project }
   end
 
   test "module-level helpers use the shared client" do
     stub_file
-    assert_equal ApiStubs::FILE_ID, AssetHutch.file(ApiStubs::FILE_ID).id
-    assert_equal ApiStubs::FILE_ID, AssetHutch::File.find(ApiStubs::FILE_ID).id
+    assert_equal ApiStubs::FILE_ID, FileHutch.file(ApiStubs::FILE_ID).id
+    assert_equal ApiStubs::FILE_ID, FileHutch::File.find(ApiStubs::FILE_ID).id
     stub_project
-    assert_equal "proj_x", AssetHutch.project.id
+    assert_equal "proj_x", FileHutch.project.id
     stub_upload_flow
-    assert AssetHutch.upload(file_fixture("sample.pdf"), policy: "documents").ready?
+    assert FileHutch.upload(file_fixture("sample.pdf"), policy: "documents").ready?
   end
 
   test "Upload#put and #complete drive the explicit flow" do
@@ -175,9 +175,9 @@ class ClientTest < ActiveSupport::TestCase
 
   test "configure resets the shared client and logs requests" do
     io = StringIO.new
-    AssetHutch.configure { |c| c.logger = Logger.new(io) }
+    FileHutch.configure { |c| c.logger = Logger.new(io) }
     stub_project
-    AssetHutch.project
+    FileHutch.project
     assert_match(/GET \/api\/v1\/project -> 200/, io.string)
   end
 
@@ -235,18 +235,18 @@ class ClientTest < ActiveSupport::TestCase
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url")
       .to_return(json(error_json("transforms_unsupported", "Amazon S3 cannot render image transforms."), 409))
 
-    error = assert_raises(AssetHutch::TransformsUnsupportedError) { @client.file(ApiStubs::FILE_ID).transform_url("avatar") }
+    error = assert_raises(FileHutch::TransformsUnsupportedError) { @client.file(ApiStubs::FILE_ID).transform_url("avatar") }
     assert_match(/cannot render image transforms/, error.message)
-    assert_kind_of AssetHutch::TransformError, error
+    assert_kind_of FileHutch::TransformError, error
 
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/files/#{ApiStubs::FILE_ID}/transform_url")
       .to_return(json(error_json("transform_not_found", "No transform named \"nope\""), 422))
-    assert_raises(AssetHutch::TransformError) { @client.file(ApiStubs::FILE_ID).transform_url("nope") }
+    assert_raises(FileHutch::TransformError) { @client.file(ApiStubs::FILE_ID).transform_url("nope") }
   end
 
   test "put_to_storage works from an upload rebuilt without its file" do
     stub_request(:put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1").to_return(status: 200, body: "")
-    upload = AssetHutch::Upload.new(upload_json) # no file:, as a browser flow returns it
+    upload = FileHutch::Upload.new(upload_json) # no file:, as a browser flow returns it
 
     assert @client.put_to_storage(upload, StringIO.new("hello"))
     assert_requested :put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1", body: "hello"
@@ -256,7 +256,7 @@ class ClientTest < ActiveSupport::TestCase
     body = json(error_json("plan_limit", "This upload would take the team past the Free plan's 2 GB of storage."), 402)
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/uploads").to_return(body)
 
-    error = assert_raises(AssetHutch::PlanLimitError) do
+    error = assert_raises(FileHutch::PlanLimitError) do
       @client.create_upload(policy: "documents", filename: "r.pdf", content_type: "application/pdf", byte_size: 11)
     end
     assert_equal "plan_limit", error.code
@@ -264,19 +264,19 @@ class ClientTest < ActiveSupport::TestCase
     assert_match(/Free plan/, error.message)
 
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/uploads").to_return(status: 402, body: "")
-    assert_raises(AssetHutch::PlanLimitError) do
+    assert_raises(FileHutch::PlanLimitError) do
       @client.create_upload(policy: "documents", filename: "r.pdf", content_type: "application/pdf", byte_size: 11)
     end
   end
 
   test "read-only keys and bad configs are their own errors" do
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/config/apply").to_return(json(error_json("read_only_key", "This API key is read-only"), 403))
-    error = assert_raises(AssetHutch::PermissionError) { AssetHutch.client.apply_config({}) }
-    assert_kind_of AssetHutch::AuthenticationError, error
+    error = assert_raises(FileHutch::PermissionError) { FileHutch.client.apply_config({}) }
+    assert_kind_of FileHutch::AuthenticationError, error
     assert_equal "read_only_key", error.code
 
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/config/plan").to_return(json(error_json("invalid_config", "uploads.docs: unknown key ttl"), 422))
-    error = assert_raises(AssetHutch::ConfigError) { AssetHutch.client.plan_config({}) }
-    assert_kind_of AssetHutch::InvalidRequestError, error
+    error = assert_raises(FileHutch::ConfigError) { FileHutch.client.plan_config({}) }
+    assert_kind_of FileHutch::InvalidRequestError, error
   end
 end
