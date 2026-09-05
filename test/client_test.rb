@@ -251,4 +251,21 @@ class ClientTest < ActiveSupport::TestCase
     assert @client.put_to_storage(upload, StringIO.new("hello"))
     assert_requested :put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1", body: "hello"
   end
+
+  test "a plan limit is its own error, from the code and from a bare 402" do
+    body = json(error_json("plan_limit", "This upload would take the team past the Free plan's 2 GB of storage."), 402)
+    stub_request(:post, "#{ApiStubs::BASE}/api/v1/uploads").to_return(body)
+
+    error = assert_raises(AssetHutch::PlanLimitError) do
+      @client.create_upload(policy: "documents", filename: "r.pdf", content_type: "application/pdf", byte_size: 11)
+    end
+    assert_equal "plan_limit", error.code
+    assert_equal 402, error.status
+    assert_match(/Free plan/, error.message)
+
+    stub_request(:post, "#{ApiStubs::BASE}/api/v1/uploads").to_return(status: 402, body: "")
+    assert_raises(AssetHutch::PlanLimitError) do
+      @client.create_upload(policy: "documents", filename: "r.pdf", content_type: "application/pdf", byte_size: 11)
+    end
+  end
 end
