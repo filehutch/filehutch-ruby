@@ -35,6 +35,31 @@ module AssetHutch
       request(:get, "/api/v1/transforms").fetch("transforms").map { |t| Transform.new(t, client: self) }
     end
 
+    # -- Declarative configuration (see `asset_hutch plan|apply`) -----------
+
+    # The project as a config hash: {"uploads" => {...}, "transforms" => {...}, "environments" => [...]}.
+    # (`config` is the client's own settings.)
+    def project_config
+      request(:get, "/api/v1/config").fetch("config")
+    end
+
+    # What apply would change. Read-only keys may call this.
+    def plan_config(config, prune: false)
+      request(:post, "/api/v1/config/plan", { config: config, prune: prune }).fetch("plan")
+    end
+
+    def apply_config(config, prune: false)
+      request(:post, "/api/v1/config/apply", { config: config, prune: prune }).fetch("apply")
+    end
+
+    # One page of the export: every ready file with its object key.
+    def manifest(after: nil, limit: nil)
+      query = { after: after, limit: limit }.compact
+      path = "/api/v1/manifest"
+      path += "?#{URI.encode_www_form(query)}" unless query.empty?
+      request(:get, path)
+    end
+
     # URL for one named transform. `expires_at` is nil for public files, which
     # are delivered from a stable URL and never expire.
     def transform_url(id, transform:, expires_in: nil)

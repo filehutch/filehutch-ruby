@@ -16,6 +16,7 @@ require_relative "asset_hutch/upload"
 require_relative "asset_hutch/project"
 require_relative "asset_hutch/client"
 require_relative "asset_hutch/webhook"
+require_relative "asset_hutch/cli"
 
 # AssetHutch: file infrastructure for apps that aren't Netflix.
 #

@@ -20,7 +20,9 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.files = Dir["{app,config,lib}/**/*", "LICENSE.txt", "README.md", "CHANGELOG.md"]
+  spec.files = Dir["{app,config,exe,lib}/**/*", "LICENSE.txt", "README.md", "CHANGELOG.md"]
+  spec.bindir = "exe"
+  spec.executables = [ "asset_hutch" ]
   spec.require_paths = [ "lib" ]
 
   # Stdlib only at runtime. Rails integration activates when Rails is present.
