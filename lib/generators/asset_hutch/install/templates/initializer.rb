@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-Assethutch.configure do |config|
+AssetHutch.configure do |config|
   # Project-scoped API key from the AssetHutch dashboard. Keep it out of the repo.
-  config.api_key = ENV["ASSETHUTCH_API_KEY"]
+  config.api_key = ENV["ASSET_HUTCH_API_KEY"]
 
   # Leave the default for AssetHutch cloud; point at your own instance otherwise.
-  config.url = ENV.fetch("ASSETHUTCH_URL", Assethutch::Configuration::DEFAULT_URL)
+  config.url = ENV.fetch("ASSET_HUTCH_URL", AssetHutch::Configuration::DEFAULT_URL)
 
-  # Browser-direct uploads (POST /assethutch/uploads) are off until you decide who may
+  # Browser-direct uploads (POST /asset_hutch/uploads) are off until you decide who may
   # upload, and against which policies. `controller` is the request's controller.
   # config.authorize_direct_upload = ->(controller, policy) do
   #   controller.current_user.present? && %w[avatars documents].include?(policy)

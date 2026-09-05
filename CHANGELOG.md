@@ -6,19 +6,19 @@ First release.
 
 ### Client
 
-- `Assethutch::Client`: project, uploads (create, complete, and a one-call `upload` that streams
+- `AssetHutch::Client`: project, uploads (create, complete, and a one-call `upload` that streams
   straight to storage), files, signed URLs, named transforms, delete.
 - Typed errors mapped from the API's `error.code`, so callers match on a class or a code rather
   than a message.
 
 ### Rails
 
-- `has_assethutch_file` for Active Record. One `<name>_file_id` column; nothing about storage
+- `has_asset_hutch_file` for Active Record. One `<name>_file_id` column; nothing about storage
   reaches your schema.
-- `Assethutch::Engine` mounts the two direct-upload endpoints, keeping the API key on the server
+- `AssetHutch::Engine` mounts the two direct-upload endpoints, keeping the API key on the server
   behind an authorizer you define.
 - A Stimulus controller and a framework-neutral `directUpload` function.
-- `assethutch:install` and `assethutch:attachment` generators.
+- `asset_hutch:install` and `asset_hutch:attachment` generators.
 
 ### Image transforms
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Assethutch
+module AssetHutch
   # Direct-upload instructions from POST /api/v1/uploads plus the pending file.
   class Upload < Resource
     attribute :file_id, :method, :url, :headers

@@ -2,7 +2,7 @@
 
 # WebMock stubs shaped exactly like the AssetHutch v1 API responses.
 module ApiStubs
-  BASE = "https://assethutch.test"
+  BASE = "https://asset_hutch.test"
   STORAGE = "https://bucket.storage.test"
   FILE_ID = "file_abcdefghij0123456789"
   AUTH = { "Authorization" => "Bearer ah_testTESTtestTESTtestTESTtestTESTtestTEST" }.freeze

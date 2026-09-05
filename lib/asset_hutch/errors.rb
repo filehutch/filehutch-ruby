@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Assethutch
+module AssetHutch
   class Error < StandardError; end
 
   # Client-side problems: missing API key, bad arguments.
@@ -59,7 +59,7 @@ module Assethutch
       code = error["code"]&.to_s
       message = error["message"] || (status >= 500 ? "AssetHutch returned HTTP #{status}" : "Request failed with HTTP #{status}")
       klass_name = CODE_CLASSES[code] || STATUS_CLASSES[status] || (status >= 500 ? :ServerError : :ApiError)
-      Assethutch.const_get(klass_name).new(message, code: code, status: status, details: error["details"])
+      AssetHutch.const_get(klass_name).new(message, code: code, status: status, details: error["details"])
     end
   end
 

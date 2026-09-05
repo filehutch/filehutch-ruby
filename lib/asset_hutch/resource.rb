@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Assethutch
+module AssetHutch
   # Thin, immutable wrapper over an API JSON object.
   class Resource
     attr_reader :attributes, :client
@@ -38,7 +38,7 @@ module Assethutch
     private
 
     def client!
-      client || Assethutch.client
+      client || AssetHutch.client
     end
   end
 end

@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require_relative "lib/assethutch/version"
+require_relative "lib/asset_hutch/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "assethutch"
-  spec.version = Assethutch::VERSION
+  spec.name = "asset_hutch"
+  spec.version = AssetHutch::VERSION
   spec.authors = [ "Andy Leverenz" ]
   spec.email = [ "andy@justalever.com" ]
 
   spec.summary = "Ruby and Rails client for AssetHutch: uploads, private files, and delivery without file plumbing."
   spec.description = "Talk to the AssetHutch file control plane from Ruby. Server-side and browser-direct uploads, " \
-                     "signed URLs, and a has_assethutch_file macro for Active Record that stores only opaque file ids."
+                     "signed URLs, and a has_asset_hutch_file macro for Active Record that stores only opaque file ids."
   spec.homepage = "https://github.com/assethutch/assethutch-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"

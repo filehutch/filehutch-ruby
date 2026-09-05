@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module Assethutch
+module AssetHutch
   # HTTP client for the AssetHutch v1 API. Stdlib only.
   #
-  #   client = Assethutch::Client.new(api_key: "ah_…", url: "https://api.assethutch.com")
+  #   client = AssetHutch::Client.new(api_key: "ah_…", url: "https://api.assethutch.com")
   #   client.upload("report.pdf", policy: "documents")        # 3-step direct upload, returns the ready file
   #   client.file("file_…").signed_url(expires_in: 600)
   class Client
@@ -15,7 +15,7 @@ module Assethutch
 
     # Accepts a Configuration or keyword overrides on top of the global one.
     def initialize(config = nil, **overrides)
-      @config = (config || Assethutch.configuration).dup
+      @config = (config || AssetHutch.configuration).dup
       overrides.each { |k, v| @config.public_send(:"#{k}=", v) }
       @config.validate!
       @base = URI(@config.url.to_s.sub(%r{/+\z}, ""))
@@ -70,7 +70,7 @@ module Assethutch
     #
     # source: a path, Pathname, File, Tempfile, StringIO, ActionDispatch::Http::UploadedFile,
     #         or a String of bytes (pass filename: then).
-    # Returns the ready Assethutch::File. Bytes go straight to storage.
+    # Returns the ready AssetHutch::File. Bytes go straight to storage.
     def upload(source, policy:, filename: nil, content_type: nil, metadata: nil)
       io, name, type, size = Source.open(source, filename: filename, content_type: content_type)
       upload = create_upload(policy: policy, filename: name, content_type: type, byte_size: size, metadata: metadata)
@@ -151,7 +151,7 @@ module Assethutch
     end
 
     def log(method, uri, response)
-      config.logger&.debug { "[assethutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
+      config.logger&.debug { "[asset_hutch] #{method.to_s.upcase} #{uri.path} -> #{response.code}" }
     end
 
     # Normalizes the many things Ruby calls "a file" into [io, filename, content_type, byte_size].
