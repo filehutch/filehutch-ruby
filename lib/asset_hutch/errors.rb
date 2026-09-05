@@ -45,12 +45,13 @@ module AssetHutch
       "transform_not_found" => :TransformError,
       "not_transformable" => :TransformError,
       "transforms_unsupported" => :TransformsUnsupportedError,
+      "plan_limit" => :PlanLimitError,
       "storage_error" => :StorageError,
       "verification_failed" => :StorageError
     }.freeze
 
     STATUS_CLASSES = { 401 => :AuthenticationError, 403 => :AuthenticationError, 404 => :NotFoundError,
-                       409 => :InvalidStateError, 410 => :InvalidStateError, 422 => :InvalidRequestError,
+                       402 => :PlanLimitError, 409 => :InvalidStateError, 410 => :InvalidStateError, 422 => :InvalidRequestError,
                        429 => :RateLimitError, 502 => :StorageError }.freeze
 
     # Picks the most specific subclass for an error payload.
@@ -73,6 +74,8 @@ module AssetHutch
   class TransformError < InvalidRequestError; end
   # The project's storage cannot render transforms. The message says what to set up.
   class TransformsUnsupportedError < TransformError; end
+  # The team's plan is out of storage or projects. The message names the plan and what to do.
+  class PlanLimitError < ApiError; end
   class RateLimitError < ApiError; end
   class ServerError < ApiError; end
   class StorageError < ApiError; end
