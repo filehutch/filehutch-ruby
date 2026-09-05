@@ -8,13 +8,13 @@ class CLITest < ActiveSupport::TestCase
 
   def run_cli(*argv, input: "")
     out, err = StringIO.new, StringIO.new
-    status = AssetHutch::CLI.new(argv, out: out, err: err, input: StringIO.new(input)).run
+    status = FileHutch::CLI.new(argv, out: out, err: err, input: StringIO.new(input)).run
     [ status, out.string, err.string ]
   end
 
   def with_config_file(config = CONFIG)
     Dir.mktmpdir do |dir|
-      path = ::File.join(dir, "asset_hutch.yml")
+      path = ::File.join(dir, "file_hutch.yml")
       ::File.write(path, YAML.dump(config))
       yield path
     end
@@ -26,8 +26,8 @@ class CLITest < ActiveSupport::TestCase
   end
 
   test "help and version" do
-    assert_equal [ 0, true ], run_cli.then { |s, out, _| [ s, out.include?("Usage: asset_hutch") ] }
-    assert_equal [ 0, "asset_hutch #{AssetHutch::VERSION}\n" ], run_cli("version").first(2)
+    assert_equal [ 0, true ], run_cli.then { |s, out, _| [ s, out.include?("Usage: file_hutch") ] }
+    assert_equal [ 0, "file_hutch #{FileHutch::VERSION}\n" ], run_cli("version").first(2)
     status, _, err = run_cli("dance")
     assert_equal 2, status
     assert_match(/Unknown command "dance"/, err)
@@ -101,12 +101,12 @@ class CLITest < ActiveSupport::TestCase
   end
 
   test "a missing or malformed config file is a usage error" do
-    status, _, err = run_cli("plan", "/nope/asset_hutch.yml")
+    status, _, err = run_cli("plan", "/nope/file_hutch.yml")
     assert_equal 2, status
     assert_match(/No config file at \/nope/, err)
 
     Dir.mktmpdir do |dir|
-      path = ::File.join(dir, "asset_hutch.yml")
+      path = ::File.join(dir, "file_hutch.yml")
       ::File.write(path, "- just\n- a list\n")
       status, _, err = run_cli("plan", path)
       assert_equal 2, status
@@ -172,11 +172,11 @@ class CLITest < ActiveSupport::TestCase
     stub_request(:get, "#{ApiStubs::BASE}/api/v1/config").to_return(status: 403, body: error_json("read_only_key", "This API key is read-only").to_json, headers: { "Content-Type" => "application/json" })
     status, _, err = run_cli("export")
     assert_equal 1, status
-    assert_match(/AssetHutch said no \(read_only_key\): This API key is read-only/, err)
+    assert_match(/FileHutch said no \(read_only_key\): This API key is read-only/, err)
 
-    AssetHutch.config.api_key = nil
+    FileHutch.config.api_key = nil
     status, _, err = run_cli("inspect")
     assert_equal 2, status
-    assert_match(/ASSET_HUTCH_API_KEY/, err)
+    assert_match(/FILE_HUTCH_API_KEY/, err)
   end
 end

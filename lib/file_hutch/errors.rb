@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-module AssetHutch
+module FileHutch
   class Error < StandardError; end
 
   # Client-side problems: missing API key, bad arguments.
   class ConfigurationError < Error; end
 
-  # A webhook body was not signed by AssetHutch with your endpoint's secret.
+  # A webhook body was not signed by FileHutch with your endpoint's secret.
   class SignatureVerificationError < Error; end
 
-  # Could not reach AssetHutch or storage (DNS, timeout, TLS, reset).
+  # Could not reach FileHutch or storage (DNS, timeout, TLS, reset).
   class ConnectionError < Error
     attr_reader :cause_error
 
@@ -19,7 +19,7 @@ module AssetHutch
     end
   end
 
-  # AssetHutch answered with {"error": {"code", "message", "details"}}.
+  # FileHutch answered with {"error": {"code", "message", "details"}}.
   class ApiError < Error
     attr_reader :code, :status, :details
 
@@ -65,9 +65,9 @@ module AssetHutch
     def self.build(status, body)
       error = body.is_a?(Hash) && body["error"].is_a?(Hash) ? body["error"] : {}
       code = error["code"]&.to_s
-      message = error["message"] || (status >= 500 ? "AssetHutch returned HTTP #{status}" : "Request failed with HTTP #{status}")
+      message = error["message"] || (status >= 500 ? "FileHutch returned HTTP #{status}" : "Request failed with HTTP #{status}")
       klass_name = CODE_CLASSES[code] || STATUS_CLASSES[status] || (status >= 500 ? :ServerError : :ApiError)
-      AssetHutch.const_get(klass_name).new(message, code: code, status: status, details: error["details"])
+      FileHutch.const_get(klass_name).new(message, code: code, status: status, details: error["details"])
     end
   end
 
@@ -91,6 +91,6 @@ module AssetHutch
   class ServerError < ApiError; end
   class StorageError < ApiError; end
 
-  # The direct PUT to storage failed, or AssetHutch could not verify it.
+  # The direct PUT to storage failed, or FileHutch could not verify it.
   class UploadError < ApiError; end
 end

@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  mount AssetHutch::Engine => "/asset_hutch"
+  mount FileHutch::Engine => "/file_hutch"
 end

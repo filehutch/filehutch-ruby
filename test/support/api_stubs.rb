@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-# WebMock stubs shaped exactly like the AssetHutch v1 API responses.
+# WebMock stubs shaped exactly like the FileHutch v1 API responses.
 module ApiStubs
-  BASE = "https://asset_hutch.test"
+  BASE = "https://file_hutch.test"
   STORAGE = "https://bucket.storage.test"
   FILE_ID = "file_abcdefghij0123456789"
-  AUTH = { "Authorization" => "Bearer ah_testTESTtestTESTtestTESTtestTESTtestTEST" }.freeze
+  AUTH = { "Authorization" => "Bearer fh_testTESTtestTESTtestTESTtestTESTtestTEST" }.freeze
 
   def file_json(**overrides)
     {

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module AssetHutch
+module FileHutch
   # Direct-upload instructions from POST /api/v1/uploads plus the pending file.
   class Upload < Resource
     attribute :file_id, :method, :url, :headers
@@ -22,7 +22,7 @@ module AssetHutch
       self
     end
 
-    # Tells AssetHutch the bytes are in place; returns the ready file.
+    # Tells FileHutch the bytes are in place; returns the ready file.
     def complete = client!.complete_upload(id)
   end
 end

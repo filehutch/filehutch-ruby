@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] = "test"
-ENV["ASSET_HUTCH_API_KEY"] = "ah_testTESTtestTESTtestTESTtestTESTtestTEST"
-ENV["ASSET_HUTCH_URL"] = "https://asset_hutch.test"
+ENV["FILE_HUTCH_API_KEY"] = "fh_testTESTtestTESTtestTESTtestTESTtestTEST"
+ENV["FILE_HUTCH_URL"] = "https://file_hutch.test"
 
 require_relative "dummy/config/application"
 Rails.application.initialize!
@@ -20,10 +20,10 @@ module ActiveSupport
     self.file_fixture_path = File.expand_path("fixtures/files", __dir__)
 
     setup do
-      AssetHutch.instance_variable_set(:@configuration, nil)
-      AssetHutch.reset_client!
-      AssetHutch::Attachable.reset_policies!
-      AssetHutch.config.authorize_direct_upload = nil
+      FileHutch.instance_variable_set(:@configuration, nil)
+      FileHutch.reset_client!
+      FileHutch::Attachable.reset_policies!
+      FileHutch.config.authorize_direct_upload = nil
     end
   end
 end

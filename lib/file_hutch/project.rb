@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module AssetHutch
+module FileHutch
   class Project < Resource
     attribute :name, :team_id, :storage_ready
     time_attribute :created_at

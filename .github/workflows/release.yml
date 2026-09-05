@@ -4,7 +4,7 @@ name: Release
 #
 # Publishing uses RubyGems trusted publishing (OIDC), so there is no API key in
 # this repository to leak or rotate. Configure it once at
-# https://rubygems.org/gems/asset_hutch/trusted_publishers with this repository,
+# https://rubygems.org/gems/file_hutch/trusted_publishers with this repository,
 # this workflow filename, and the `rubygems` environment below.
 on:
   push:
@@ -30,12 +30,12 @@ jobs:
 
       # A tag that disagrees with the constant would publish a version nobody
       # can find from the source, so stop before anything is built.
-      - name: Check the tag matches AssetHutch::VERSION
+      - name: Check the tag matches FileHutch::VERSION
         run: |
           tagged="${GITHUB_REF_NAME#v}"
-          declared="$(ruby -Ilib -rasset_hutch/version -e 'print AssetHutch::VERSION')"
+          declared="$(ruby -Ilib -rfile_hutch/version -e 'print FileHutch::VERSION')"
           if [ "$tagged" != "$declared" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match AssetHutch::VERSION ${declared}" >&2
+            echo "Tag ${GITHUB_REF_NAME} does not match FileHutch::VERSION ${declared}" >&2
             exit 1
           fi
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module AssetHutch
+module FileHutch
   # A stored file. `id` ("file_…") is the only thing your app should persist.
   class File < Resource
     ID_PATTERN = /\Afile_[0-9A-Za-z]{20}\z/
@@ -12,7 +12,7 @@ module AssetHutch
 
     def self.id?(value) = value.is_a?(String) && value.match?(ID_PATTERN)
 
-    def self.find(id, client: AssetHutch.client) = client.file(id)
+    def self.find(id, client: FileHutch.client) = client.file(id)
 
     STATUSES.each { |s| define_method(:"#{s}?") { status == s } }
 

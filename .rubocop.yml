@@ -1,4 +1,4 @@
-# Omakase Ruby styling, same as the AssetHutch app.
+# Omakase Ruby styling, same as the FileHutch app.
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
 AllCops:
