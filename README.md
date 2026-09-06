@@ -34,6 +34,10 @@ client = FileHutch.client                       # or FileHutch::Client.new(api_k
 
 client.project                                  # => FileHutch::Project (storage status, policies)
 client.upload(path_or_io, policy: "documents", metadata: { order_id: "ord_1" })
+
+# An MD5 goes with the request, so FileHutch refuses the upload if what arrives is
+# not what left. It is streamed, so the file is never held in memory to digest it.
+# Pass verify: false to skip it, and only the byte count is checked.
 client.file("file_…")                           # => FileHutch::File
 client.signed_url("file_…", expires_in: 3600, disposition: "attachment")  # => SignedUrl(url, expires_at)
 client.transforms                               # => [FileHutch::Transform] (avatar, thumb, hero…)

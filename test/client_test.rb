@@ -55,7 +55,9 @@ class ClientTest < ActiveSupport::TestCase
 
     assert file.ready?
     assert_requested(:post, "#{ApiStubs::BASE}/api/v1/uploads", times: 1) do |req|
-      JSON.parse(req.body) == { "policy" => "documents", "filename" => "sample.pdf", "content_type" => "application/pdf", "byte_size" => 12, "metadata" => { "order" => 1 } }
+      JSON.parse(req.body) == { "policy" => "documents", "filename" => "sample.pdf", "content_type" => "application/pdf",
+                                "byte_size" => 12, "checksum" => Digest::MD5.file(path).hexdigest,
+                                "metadata" => { "order" => 1 } }
     end
     assert_requested(:put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1", times: 1) do |req|
       req.headers["Content-Type"] == "application/pdf" && req.headers["Content-Length"] == "12" && req.body == File.binread(path)
@@ -278,5 +280,42 @@ class ClientTest < ActiveSupport::TestCase
     stub_request(:post, "#{ApiStubs::BASE}/api/v1/config/plan").to_return(json(error_json("invalid_config", "uploads.docs: unknown key ttl"), 422))
     error = assert_raises(FileHutch::ConfigError) { FileHutch.client.plan_config({}) }
     assert_kind_of FileHutch::InvalidRequestError, error
+  end
+
+  test "the checksum describes the bytes, and the PUT still sends all of them" do
+    stub_upload_flow
+    path = file_fixture("sample.pdf")
+
+    @client.upload(path, policy: "documents")
+
+    assert_requested(:post, "#{ApiStubs::BASE}/api/v1/uploads", times: 1) do |req|
+      JSON.parse(req.body)["checksum"] == Digest::MD5.file(path).hexdigest
+    end
+    # Digesting reads the whole IO, so it has to rewind or the PUT sends nothing.
+    assert_requested(:put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1", times: 1) do |req|
+      req.body == File.binread(path)
+    end
+  end
+
+  test "verification can be turned off, and then nothing is claimed" do
+    stub_upload_flow
+
+    @client.upload(file_fixture("sample.pdf"), policy: "documents", verify: false)
+
+    assert_requested(:post, "#{ApiStubs::BASE}/api/v1/uploads", times: 1) do |req|
+      !JSON.parse(req.body).key?("checksum")
+    end
+  end
+
+  test "an in-memory source is digested and uploaded intact" do
+    stub_upload_flow
+    bytes = "%PDF-1.4 hi\n"
+
+    @client.upload(bytes, policy: "documents", filename: "sample.pdf", content_type: "application/pdf")
+
+    assert_requested(:post, "#{ApiStubs::BASE}/api/v1/uploads", times: 1) do |req|
+      JSON.parse(req.body)["checksum"] == Digest::MD5.hexdigest(bytes)
+    end
+    assert_requested(:put, "#{ApiStubs::STORAGE}/#{ApiStubs::FILE_ID}?sig=1", times: 1) { |req| req.body == bytes }
   end
 end
