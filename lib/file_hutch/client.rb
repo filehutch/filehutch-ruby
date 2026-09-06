@@ -69,8 +69,9 @@ module FileHutch
       SignedUrl.new(url: data.fetch("url"), expires_at: expires_at && Time.iso8601(expires_at))
     end
 
-    def create_upload(policy:, filename:, content_type:, byte_size:, metadata: nil)
+    def create_upload(policy:, filename:, content_type:, byte_size:, metadata: nil, checksum: nil)
       body = { policy: policy, filename: filename, content_type: content_type, byte_size: byte_size }
+      body[:checksum] = checksum if checksum
       body[:metadata] = metadata if metadata && !metadata.empty?
       data = request(:post, "/api/v1/uploads", body)
       Upload.new(data.fetch("upload"), file: File.new(data.fetch("file"), client: self), client: self)
@@ -96,9 +97,13 @@ module FileHutch
     # source: a path, Pathname, File, Tempfile, StringIO, ActionDispatch::Http::UploadedFile,
     #         or a String of bytes (pass filename: then).
     # Returns the ready FileHutch::File. Bytes go straight to storage.
-    def upload(source, policy:, filename: nil, content_type: nil, metadata: nil)
+    # verify: sends an MD5 of the bytes so FileHutch refuses the upload if what
+    # arrives is not what left. Costs one pass over the file; on by default
+    # because a corrupted upload that completes is worse than a slow one.
+    def upload(source, policy:, filename: nil, content_type: nil, metadata: nil, verify: true)
       io, name, type, size = Source.open(source, filename: filename, content_type: content_type)
-      upload = create_upload(policy: policy, filename: name, content_type: type, byte_size: size, metadata: metadata)
+      upload = create_upload(policy: policy, filename: name, content_type: type, byte_size: size,
+        metadata: metadata, checksum: (Source.md5(io) if verify))
       put_to_storage(upload, io)
       complete_upload(upload.id)
     ensure
@@ -193,6 +198,8 @@ module FileHutch
       }.freeze
       FALLBACK = "application/octet-stream"
 
+      CHUNK = 1_048_576 # 1 MiB; this gem is stdlib only, so no 1.megabyte
+
       module_function
 
       def open(source, filename: nil, content_type: nil)
@@ -203,6 +210,19 @@ module FileHutch
         io.rewind if io.respond_to?(:rewind)
         size = io.respond_to?(:size) ? io.size : io.stat.size
         [ io, ::File.basename(name.to_s), type, size ]
+      end
+
+      # Streamed rather than read whole: an upload can be far larger than the
+      # memory the process has, and rewinding afterwards leaves the IO exactly
+      # as it was found so the PUT still starts at the beginning.
+      def md5(io)
+        digest = Digest::MD5.new
+        io.rewind if io.respond_to?(:rewind)
+        while (chunk = io.read(CHUNK))
+          digest << chunk
+        end
+        io.rewind if io.respond_to?(:rewind)
+        digest.hexdigest
       end
 
       # We close IOs we opened ourselves (paths), never the caller's.

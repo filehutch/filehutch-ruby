@@ -3,6 +3,7 @@
 require "json"
 require "stringio"
 require "openssl"
+require "digest"
 require "net/http"
 require "uri"
 require "time"
