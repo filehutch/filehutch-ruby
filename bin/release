@@ -1,0 +1,119 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Cuts a release: checks the tree, runs the suite, writes the version and the
+# changelog date, then commits, tags and pushes.
+#
+# The tag is what publishes. Pushing it starts the Release workflow, which
+# builds the gem and pushes it to RubyGems through trusted publishing, so no
+# credential is needed here or on your machine.
+#
+#   bin/release 0.2.0
+#   bin/release 0.2.0 --dry-run     # say what it would do, change nothing
+#   bin/release 0.2.0 --yes         # skip the confirmation
+
+require "date"
+require "tmpdir"
+
+dry_run = !ARGV.delete("--dry-run").nil?
+assume_yes = !ARGV.delete("--yes").nil?
+version = ARGV.shift
+
+ROOT = File.expand_path("..", __dir__)
+VERSION_FILE = File.join(ROOT, "lib/file_hutch/version.rb")
+CHANGELOG = File.join(ROOT, "CHANGELOG.md")
+
+Dir.chdir(ROOT)
+
+def die(message)
+  warn "release: #{message}"
+  exit 1
+end
+
+def capture(*cmd) = IO.popen(cmd, err: File::NULL, &:read).to_s.strip
+
+def run(*cmd, quiet: false)
+  options = quiet ? { out: File::NULL, err: File::NULL } : {}
+  system(*cmd, **options) or die("`#{cmd.join(' ')}` failed")
+end
+
+def step(message) = puts("\e[36m==>\e[0m #{message}")
+
+die "usage: bin/release <version> [--dry-run] [--yes]" if version.nil?
+die "#{version.inspect} is not a version, e.g. 1.2.3 or 1.2.3.rc1" unless /\A\d+\.\d+\.\d+(\.[0-9A-Za-z]+)*\z/.match?(version)
+
+tag = "v#{version}"
+current = File.read(VERSION_FILE)[/VERSION = "([^"]+)"/, 1] or die "no VERSION in #{VERSION_FILE}"
+
+# Everything that would make the push wrong, checked before anything is written.
+step "Checking the working tree"
+die "not on main (on #{capture("git", "rev-parse", "--abbrev-ref", "HEAD")})" unless capture("git", "rev-parse", "--abbrev-ref", "HEAD") == "main"
+die "working tree is dirty; commit or stash first" unless capture("git", "status", "--porcelain").empty?
+run "git", "fetch", "--quiet", "origin", "main"
+die "main is behind or diverged from origin/main; pull first" unless capture("git", "rev-parse", "HEAD") == capture("git", "rev-parse", "origin/main")
+die "#{tag} already exists locally" unless capture("git", "tag", "-l", tag).empty?
+die "#{tag} already exists on origin" unless capture("git", "ls-remote", "--tags", "origin", tag).empty?
+
+die "#{version} is not newer than #{current}" unless Gem::Version.new(version) > Gem::Version.new(current)
+
+# The workflow refuses a tag that disagrees with the constant, and a release
+# with no changelog entry is one nobody can read. Catch both here instead.
+changelog = File.read(CHANGELOG)
+heading = changelog[/^## #{Regexp.escape(version)}(?: — .*)?$/] or
+  die "CHANGELOG.md has no `## #{version}` heading — write the entry first"
+
+step "Running the suite"
+run "bundle", "exec", "bin/test"
+run "bundle", "exec", "rubocop", "--format", "quiet"
+
+puts
+step "#{current} → #{version}"
+[[VERSION_FILE.delete_prefix("#{ROOT}/"), %(VERSION = #{version.inspect})],
+ ["CHANGELOG.md", "#{heading.strip} → ## #{version} — #{Date.today}"],
+ ["git commit", "Release #{tag}"],
+ ["git tag", tag],
+ ["git push", "origin main #{tag}"]].each { |label, detail| puts format("  %-26s %s", label, detail) }
+puts
+puts "Pushing #{tag} publishes #{version} to RubyGems. That cannot be undone —"
+puts "a yanked version's number can never be reused."
+puts
+
+if dry_run
+  step "Dry run, nothing changed"
+  exit 0
+end
+
+unless assume_yes
+  print "Release #{tag}? [y/N] "
+  die "cancelled" unless $stdin.gets.to_s.strip.casecmp?("y")
+end
+
+# From here the tree gets written to, so anything that fails puts it back.
+begin
+  step "Writing the version and the changelog"
+  File.write(VERSION_FILE, File.read(VERSION_FILE).sub(/VERSION = "[^"]+"/, %(VERSION = "#{version}")))
+  File.write(CHANGELOG, changelog.sub(/^## #{Regexp.escape(version)}(?: — .*)?$/, "## #{version} — #{Date.today}"))
+
+  step "Building the gem"
+  run "gem", "build", "file_hutch.gemspec", "--output", File.join(Dir.tmpdir, "file_hutch-release.gem"), quiet: true
+
+  step "Committing and tagging"
+  run "git", "add", VERSION_FILE, CHANGELOG
+  run "git", "commit", "--quiet", "-m", "Release #{tag}"
+  run "git", "tag", "-a", tag, "-m", "Release #{tag}"
+rescue SystemExit
+  warn "release: putting the tree back"
+  system("git", "checkout", "--", VERSION_FILE, CHANGELOG)
+  system("git", "tag", "-d", tag, out: File::NULL, err: File::NULL)
+  raise
+end
+
+step "Pushing"
+run "git", "push", "--quiet", "origin", "main"
+run "git", "push", "--quiet", "origin", tag
+
+puts
+step "#{tag} pushed. The Release workflow is publishing #{version}."
+repo = capture("gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner")
+puts "  gh run watch --repo #{repo}" unless repo.empty?
+puts "  https://rubygems.org/gems/file_hutch/versions/#{version}"
