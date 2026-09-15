@@ -26,6 +26,9 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
+          # There is no .ruby-version in this repository, and setup-ruby errors
+          # rather than picking one, so it has to be named here.
+          ruby-version: "3.4"
           bundler-cache: true
 
       # A tag that disagrees with the constant would publish a version nobody
@@ -40,7 +43,9 @@ jobs:
           fi
 
       - name: Run tests
-        run: bin/test
+        # bin/test is plain ruby, so without bundler the dummy app cannot
+        # require rails and every Rails-dependent test errors.
+        run: bundle exec bin/test
 
       - name: Lint
         run: bundle exec rubocop
