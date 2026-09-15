@@ -54,7 +54,23 @@ die "main is behind or diverged from origin/main; pull first" unless capture("gi
 die "#{tag} already exists locally" unless capture("git", "tag", "-l", tag).empty?
 die "#{tag} already exists on origin" unless capture("git", "ls-remote", "--tags", "origin", tag).empty?
 
-die "#{version} is not newer than #{current}" unless Gem::Version.new(version) > Gem::Version.new(current)
+# The question is not whether the version beats the one in the file — on a
+# first release they are the same number, because the file already carries it.
+# It is whether that version has been released already.
+die "#{version} is older than #{current}" if Gem::Version.new(version) < Gem::Version.new(current)
+
+def published?(version)
+  require "net/http"
+  require "json"
+  response = Net::HTTP.get_response(URI("https://rubygems.org/api/v1/versions/file_hutch.json"))
+  return false unless response.is_a?(Net::HTTPSuccess)
+
+  JSON.parse(response.body).any? { |release| release["number"] == version }
+rescue StandardError
+  false # Unreachable registry; the tag checks above still stop a repeat release.
+end
+
+die "#{version} is already on RubyGems" if published?(version)
 
 # The workflow refuses a tag that disagrees with the constant, and a release
 # with no changelog entry is one nobody can read. Catch both here instead.
@@ -99,7 +115,11 @@ begin
 
   step "Committing and tagging"
   run "git", "add", VERSION_FILE, CHANGELOG
-  run "git", "commit", "--quiet", "-m", "Release #{tag}"
+  if system("git", "diff", "--cached", "--quiet")
+    puts "  nothing to commit; tagging #{capture("git", "rev-parse", "--short", "HEAD")} as it stands"
+  else
+    run "git", "commit", "--quiet", "-m", "Release #{tag}"
+  end
   run "git", "tag", "-a", tag, "-m", "Release #{tag}"
 rescue SystemExit
   warn "release: putting the tree back"
