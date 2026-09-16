@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 — Unreleased
+
+### Rails
+
+- `has_file_hutch_file` is now `has_hutch`, with the same options. The old name still works and
+  logs a deprecation warning; it will be removed in 0.3.
+
 ## 0.1.0 — 2026-09-15
 
 First release.

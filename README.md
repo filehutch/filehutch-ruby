@@ -161,8 +161,8 @@ bin/rails generate file_hutch:attachment User avatar    # adds users.avatar_file
 
 ```ruby
 class User < ApplicationRecord
-  has_file_hutch_file :avatar, policy: "avatars"
-  has_file_hutch_file :contract, policy: "documents", dependent: false
+  has_hutch :avatar, policy: "avatars"
+  has_hutch :contract, policy: "documents", dependent: false
 end
 
 user.avatar = params[:avatar]           # uploaded IO → uploaded to storage on save
@@ -227,14 +227,14 @@ Submit buttons are disabled while uploading. The element dispatches `filehutch:s
 `filehutch:progress`, `filehutch:complete`, and `filehutch:error`. `directUpload(file, { url,
 policy, onProgress })` is exported for use without Stimulus.
 
-On save, `has_file_hutch_file` verifies the submitted id is a ready file under the declared policy,
+On save, `has_hutch` verifies the submitted id is a ready file under the declared policy,
 so a client cannot attach someone else's upload to the wrong field.
 
 ### Coming from Active Storage
 
 | Active Storage | file_hutch |
 | --- | --- |
-| `has_one_attached :avatar` | `has_file_hutch_file :avatar, policy: "avatars"` |
+| `has_one_attached :avatar` | `has_hutch :avatar, policy: "avatars"` |
 | `active_storage_blobs` + `attachments` tables | `users.avatar_file_id` |
 | `url_for(user.avatar)` | `user.avatar_url` / `user.avatar_signed_url` |
 | `user.avatar.variant(resize_to_fill: [200, 200])` | `user.avatar_transform_url("avatar")`, defined once in the dashboard |

@@ -11,6 +11,14 @@ class AttachableTest < ActiveSupport::TestCase
     assert_respond_to Document.new, :report_signed_url
   end
 
+  test "has_file_hutch_file still declares the attachment, and says to use has_hutch" do
+    model = Class.new(ActiveRecord::Base) { self.table_name = "documents" }
+    assert_deprecated(/use has_hutch :report/i, FileHutch.deprecator) do
+      model.has_file_hutch_file :report, policy: "documents", dependent: false
+    end
+    assert_equal({ policy: "documents", column: "report_file_id", dependent: false, verify: true }, model.file_hutch_files[:report])
+  end
+
   test "uploads a staged IO on save and stores only the file id" do
     stub_project
     stub_upload_flow

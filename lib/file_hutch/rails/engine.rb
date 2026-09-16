@@ -13,6 +13,10 @@ module FileHutch
   class Engine < ::Rails::Engine
     isolate_namespace FileHutch
 
+    initializer "file_hutch.deprecator" do |app|
+      app.deprecators[:file_hutch] = FileHutch.deprecator if app.respond_to?(:deprecators)
+    end
+
     initializer "file_hutch.active_record" do
       ActiveSupport.on_load(:active_record) { extend FileHutch::Attachable::ClassMethods }
     end

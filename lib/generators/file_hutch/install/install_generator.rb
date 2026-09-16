@@ -25,7 +25,7 @@ module FileHutch
         say ""
         say "FileHutch installed.", :green
         say "  1. Set FILE_HUTCH_API_KEY (Dashboard → API keys) and, if not production, FILE_HUTCH_URL."
-        say "  2. Add a column and macro:  bin/rails g file_hutch:attachment User avatar  then  has_file_hutch_file :avatar, policy: \"avatars\""
+        say "  2. Add a column and macro:  bin/rails g file_hutch:attachment User avatar  then  has_hutch :avatar, policy: \"avatars\""
         say "  3. For browser uploads, set FileHutch.config.authorize_direct_upload in the initializer and register the"
         say "     Stimulus controller:  application.register(\"filehutch-direct-upload\", DirectUploadController)"
       end
