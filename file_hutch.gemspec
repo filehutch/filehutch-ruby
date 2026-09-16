@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Ruby and Rails client for FileHutch: uploads, private files, and delivery without file plumbing."
   spec.description = "Talk to the FileHutch file control plane from Ruby. Server-side and browser-direct uploads, " \
-                     "signed URLs, and a has_file_hutch_file macro for Active Record that stores only opaque file ids."
+                     "signed URLs, and a has_hutch macro for Active Record that stores only opaque file ids."
   spec.homepage = "https://github.com/filehutch/filehutch-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"

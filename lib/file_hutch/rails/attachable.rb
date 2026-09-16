@@ -3,11 +3,11 @@
 require "active_support/concern"
 
 module FileHutch
-  # `has_file_hutch_file` for Active Record. The model stores one string column,
+  # `has_hutch` for Active Record. The model stores one string column,
   # `<name>_file_id`, holding an FileHutch file id. Nothing about storage leaks in.
   #
   #   class User < ApplicationRecord
-  #     has_file_hutch_file :avatar, policy: "avatars"
+  #     has_hutch :avatar, policy: "avatars"
   #   end
   #
   #   user.avatar = params[:avatar]            # uploaded IO: uploaded to storage on save
@@ -25,7 +25,7 @@ module FileHutch
     extend ActiveSupport::Concern
 
     class_methods do
-      def has_file_hutch_file(name, policy:, column: "#{name}_file_id", dependent: :delete, verify: true)
+      def has_hutch(name, policy:, column: "#{name}_file_id", dependent: :delete, verify: true)
         include Attachable unless include?(Attachable)
         name = name.to_sym
         column = column.to_s
@@ -43,6 +43,12 @@ module FileHutch
         define_method(:"#{name}_signed_url") { |expires_in: nil, disposition: nil| file_hutch_file(name)&.signed_url(expires_in: expires_in, disposition: disposition) }
         define_method(:"#{name}_transform_url") { |transform, expires_in: nil| file_hutch_file(name)&.transform_url(transform, expires_in: expires_in) }
         define_method(:"purge_#{name}") { file_hutch_purge(name) }
+      end
+
+      # The 0.1.0 name. Kept for one release so upgrading doesn't break a model.
+      def has_file_hutch_file(name, **options)
+        FileHutch.deprecator.warn("has_file_hutch_file is deprecated and will be removed in file_hutch 0.3. Use has_hutch :#{name} with the same options.")
+        has_hutch(name, **options)
       end
 
       def file_hutch_files

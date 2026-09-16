@@ -6,7 +6,7 @@ require "rails/generators/active_record"
 module FileHutch
   module Generators
     # bin/rails generate file_hutch:attachment User avatar
-    # Adds users.avatar_file_id (string). Pair with `has_file_hutch_file :avatar, policy: "…"`.
+    # Adds users.avatar_file_id (string). Pair with `has_hutch :avatar, policy: "…"`.
     class AttachmentGenerator < ::Rails::Generators::NamedBase
       include ::ActiveRecord::Generators::Migration
 
@@ -18,7 +18,7 @@ module FileHutch
       end
 
       def show_macro
-        say %(Add to #{class_name}:  has_file_hutch_file :#{attachment}, policy: "#{attachment.pluralize}"), :green
+        say %(Add to #{class_name}:  has_hutch :#{attachment}, policy: "#{attachment.pluralize}"), :green
       end
 
       private

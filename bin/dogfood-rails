@@ -8,7 +8,7 @@
 #   bin/dogfood-rails
 #
 # bin/dogfood proves the client. This proves everything built on top of it:
-# has_file_hutch_file, the engine's direct-upload endpoints, replacement,
+# has_hutch, the engine's direct-upload endpoints, replacement,
 # purge, and the local policy checks — none of which the unit suite exercises
 # against a real server, because it answers every request with WebMock.
 #
@@ -57,7 +57,7 @@ puts "   project #{project.id}, policies: #{project.upload_policies.map(&:name).
 doc = Document.new(title: "Dogfood")
 first_report_id = nil
 
-step(1, "Assigning an upload to has_file_hutch_file stores it on save") do
+step(1, "Assigning an upload to has_hutch stores it on save") do
   doc.report = uploaded(pdf_path, "application/pdf")
   raise "column should stay empty until save" if doc.report_file_id.present?
 
