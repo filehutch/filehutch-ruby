@@ -35,6 +35,15 @@ module FileHutch
       request(:get, "/api/v1/transforms").fetch("transforms").map { |t| Transform.new(t, client: self) }
     end
 
+    # Registers an object that is already in a connected bucket as a file, in
+    # place: nothing is copied and the object keeps its key. Adopting the same
+    # key again returns the same file, so a backfill can be re-run.
+    def adopt(key:, storage_connection:, filename: nil, content_type: nil, visibility: nil, policy: nil)
+      body = { storage_connection: storage_connection, key: key, filename: filename,
+               content_type: content_type, visibility: visibility, policy: policy }.compact
+      File.new(request(:post, "/api/v1/files/adopt", body).fetch("file"), client: self)
+    end
+
     # -- Declarative configuration (see `file_hutch plan|apply`) -----------
 
     # The project as a config hash: {"uploads" => {...}, "transforms" => {...}, "environments" => [...]}.

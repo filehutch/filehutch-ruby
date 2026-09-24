@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Rails
+
+- `bin/rails file_hutch:backfill MODEL=… FROM=…` moves an Active Storage attachment onto its
+  `has_hutch` column: streams each blob through FileHutch, or with `ADOPT_FROM=conn_…` registers
+  blobs in place when the Active Storage bucket is connected. Restartable; fills only blank rows.
+  Backed by `FileHutch::Backfill`.
+
+### Client
+
+- `adopt(key:, storage_connection:)` registers an object already in a connected bucket as a file,
+  without copying it. Idempotent: adopting the same key again returns the same file.
+
 ## 0.2.0 — 2026-09-16
 
 ### Rails
