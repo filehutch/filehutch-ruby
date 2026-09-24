@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+
+### Removed
+
+- `has_file_hutch_file`, deprecated in 0.2.0 as promised. Rename it to `has_hutch`; the options
+  are the same.
 
 ### Rails
 

@@ -45,11 +45,6 @@ module FileHutch
         define_method(:"purge_#{name}") { file_hutch_purge(name) }
       end
 
-      # The 0.1.0 name. Kept for one release so upgrading doesn't break a model.
-      def has_file_hutch_file(name, **options)
-        FileHutch.deprecator.warn("has_file_hutch_file is deprecated and will be removed in file_hutch 0.3. Use has_hutch :#{name} with the same options.")
-        has_hutch(name, **options)
-      end
 
       def file_hutch_files
         @file_hutch_files ||= superclass.respond_to?(:file_hutch_files) ? superclass.file_hutch_files.dup : {}
