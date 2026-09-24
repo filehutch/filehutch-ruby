@@ -242,6 +242,26 @@ so a client cannot attach someone else's upload to the wrong field.
 | `DirectUpload` JS | `file_hutch/direct_upload_controller` |
 | service.yml, CORS, signed URL code | policies in the FileHutch dashboard |
 
+Moving existing attachments across is one task. Add the column and `has_hutch`
+beside the Active Storage attachment, then:
+
+```sh
+bin/rails file_hutch:backfill MODEL=User FROM=avatar
+```
+
+Each blob is read through Active Storage and uploaded under the attachment's
+policy, and its file ID goes into the column. Only rows whose column is still
+blank are touched, so a run that stops half way (or leaves failures) carries on
+where it was when you run it again. `TO=` names the `has_hutch` attachment when
+it differs from the Active Storage one.
+
+If the bucket Active Storage writes to is connected to your FileHutch project,
+add `ADOPT_FROM=conn_…` and nothing is copied: each blob becomes a file where it
+already is, by its key.
+
+The Active Storage attachment is left alone. Read from the new column with a
+fallback to the old one until the backfill has filled every row, then remove it.
+
 ## Development
 
 ```sh
